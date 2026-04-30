@@ -1,11 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign } from "lucide-react"
+import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign, Download, Eye, MoreVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import {
   Command,
@@ -20,7 +26,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import Link from "next/link"
+
+import InvoiceView from "@/components/InvoiceView"
+import InvoicePDF from "@/components/InvoicePDF"
+
+import {
+  PDFDownloadLink,
+  PDFViewer,
+} from "@react-pdf/renderer"
 
 interface Product {
   id: string
@@ -56,6 +69,17 @@ const sampleClients: Client[] = [
   { id: "4", name: "NextGen Systems", email: "support@nextgensystems.com" },
 ]
 
+const invoiceData = {
+  customer: {
+    name: "John Doe",
+    email: "john@example.com",
+  },
+  items: [
+    { name: "Product A", quantity: 2, price: 50 },
+    { name: "Product B", quantity: 1, price: 100 },
+  ],
+}
+
 export default function CreateInvoicePage() {
   const [openProduct, setOpenProduct] = useState(false)
   const [openClient, setOpenClient] = useState(false)
@@ -72,6 +96,22 @@ export default function CreateInvoicePage() {
   const [applyDiscount, setApplyDiscount] = useState(false)
   const [discountType, setDiscountType] = useState<"percent" | "amount">("percent")
   const [discountValue, setDiscountValue] = useState("")
+  const [showPreview, setShowPreview] = useState(false)
+  const [invoiceNumber, setInvoiceNumber] = useState("")
+  const [invoiceDate, setInvoiceDate] = useState("")
+
+  useEffect(() => {
+    const configInvoiceData = ()=>{
+      setInvoiceNumber(`INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`)
+      setInvoiceDate(new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }))
+    }
+    
+    configInvoiceData()
+  }, [])
 
   const addItem = () => {
     const itemName = isEstimate ? customItemName : selectedProduct?.name
@@ -122,297 +162,383 @@ export default function CreateInvoicePage() {
     return calculateSubtotal() + calculateTax() - calculateDiscount()
   }
 
+  const invoiceItemsForPDF = items.map(item => ({
+    name: item.name,
+    quantity: item.quantity,
+    price: item.rate,
+  }))
+
+  const customerForPDF = {
+    name: isEstimate ? customClientName || "Customer" : selectedClient?.name || "Customer",
+    email: isEstimate ? "" : selectedClient?.email || "",
+  }
+
   return (
-    <main className="w-full text-xs">
-
-      <div className="text-xl mx-10 font-bold my-2">
-        Create Invoice
-      </div>
-
-      {/* BILL TO */}
-      <section className="w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
-        <div className="flex justify-center gap-2 font-semibold">
-          <span>Real Bill</span>
-          <Switch 
-            className="cursor-pointer" 
-            checked={isEstimate}
-            onCheckedChange={setIsEstimate}
-          />
-          <span>Estimate Bill</span>
-        </div>
-
-        <h2 className="font-semibold">Bill To</h2>
-
-        <div className="flex gap-2">
-          {isEstimate ? (
-            <Input
-              placeholder="Client name"
-              value={customClientName}
-              onChange={(e) => setCustomClientName(e.target.value)}
-              className="flex-1 h-9 text-xs"
-            />
-          ) : (
-            <Popover open={openClient} onOpenChange={setOpenClient}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openClient}
-                  className="flex-1 h-9 text-xs justify-between"
+    <main className="w-full">
+      <div className="w-full max-w-7xl mx-auto px-4 my-4">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold">Create Invoice</h1>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <PDFDownloadLink
+                  document={
+                    <InvoicePDF
+                      invoiceNumber={invoiceNumber}
+                      date={invoiceDate}
+                      customer={customerForPDF}
+                      items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
+                      subtotal={calculateSubtotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0))}
+                      tax={calculateTax()}
+                      taxRate={parseFloat(taxRate)}
+                      discount={calculateDiscount()}
+                      discountType={discountType}
+                      total={calculateTotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0) * 1.18)}
+                    />
+                  }
+                  fileName={`invoice-${invoiceNumber}.pdf`}
                 >
-                  {selectedClient ? selectedClient.name : "Select Client..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-100 p-0">
-                <Command>
-                  <CommandInput placeholder="Search client..." className="h-9" />
-                  <CommandList>
-                    <CommandEmpty>No client found.</CommandEmpty>
-                    <CommandGroup>
-                      {sampleClients.map((client) => (
-                        <CommandItem
-                          key={client.id}
-                          value={client.name}
-                          onSelect={() => {
-                            setSelectedClient(client)
-                            setOpenClient(false)
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedClient?.id === client.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {client.name}
-                          <span className="ml-auto text-muted-foreground text-[10px]">
-                            {client.email}
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          )}
-
-          <Link href="/clients" className="h-9 w-9 bg-primary text-primary-foreground rounded-lg flex items-center justify-center">
-            <Plus className="h-4 w-4" />
-          </Link>
+                  {({ loading }) => (
+                    <div className="flex items-center">
+                      <Download className="h-4 w-4 mr-2" />
+                      {loading ? "Generating PDF..." : "Download PDF"}
+                    </div>
+                  )}
+                </PDFDownloadLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowPreview(!showPreview)}>
+                <Eye className="h-4 w-4 mr-2" />
+                {showPreview ? "Hide Preview" : "Preview PDF"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <div className="flex gap-2">
-          <Input type="date" className="h-9 text-xs" />
-          <Input type="date" className="h-9 text-xs" />
-        </div>
-      </section>
-
-      {/* ITEMS */}
-      <section className="w-[90%] mt-4 p-4 rounded-xl border bg-white shadow-sm space-y-3">
-        <h2 className="font-semibold">Items</h2>
-
-        {/* ITEM ROW */}
-        <div className="grid grid-cols-5 gap-2 items-center">
-          {isEstimate ? (
-            <Input
-              placeholder="Item name"
-              value={customItemName}
-              onChange={(e) => setCustomItemName(e.target.value)}
-              className="col-span-2 h-9 text-xs"
-            />
-          ) : (
-            <Popover open={openProduct} onOpenChange={setOpenProduct}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openProduct}
-                  className="col-span-2 h-9 text-xs justify-between"
-                >
-                  {selectedProduct ? selectedProduct.name : "Select Item..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-100 p-0">
-                <Command>
-                  <CommandInput placeholder="Search item..." className="h-9" />
-                  <CommandList>
-                    <CommandEmpty>No item found.</CommandEmpty>
-                    <CommandGroup>
-                      {sampleProducts.map((product) => (
-                        <CommandItem
-                          key={product.id}
-                          value={product.name}
-                          onSelect={() => {
-                            setSelectedProduct(product)
-                            setRate(product.price.toString())
-                            setOpenProduct(false)
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {product.name}
-                          <span className="ml-auto text-muted-foreground">
-                            ${product.price.toFixed(2)}
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          )}
-          <Input 
-            placeholder="Qty" 
-            type="number" 
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="h-9 text-xs" 
-          />
-          <Input 
-            placeholder="Rate" 
-            type="number" 
-            value={isEstimate ? rate : (selectedProduct?.price || "")}
-            onChange={(e) => setRate(e.target.value)}
-            className="h-9 text-xs" 
-          />
-          <Button 
-            onClick={addItem} 
-            size="icon" 
-            className="h-9 w-9 bg-orange-500 hover:bg-orange-600"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* ITEMS LIST */}
-        {items.length > 0 && (
-          <div className="space-y-2 mt-4">
-            {items.map((item) => (
-              <div 
-                key={item.id} 
-                className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-              >
-                <div className="flex-1">
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    {item.quantity} x ${item.rate.toFixed(2)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">
-                    ${(item.quantity * item.rate).toFixed(2)}
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => removeItem(item.id)}
-                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+        {showPreview && (
+          <div className="mb-8 border rounded-lg overflow-hidden h-[800px]">
+            <PDFViewer width="100%" height="100%">
+              <InvoicePDF
+                invoiceNumber={invoiceNumber}
+                date={invoiceDate}
+                customer={customerForPDF}
+                items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
+                subtotal={calculateSubtotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0))}
+                tax={calculateTax()}
+                taxRate={parseFloat(taxRate)}
+                discount={calculateDiscount()}
+                discountType={discountType}
+                total={calculateTotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0) * 1.18)}
+              />
+            </PDFViewer>
           </div>
         )}
-      </section>
 
-      {/* SUMMARY */}
-      <section className="w-[90%] mt-4 p-4 rounded-xl border bg-white shadow-sm space-y-3">
-        <div className="flex justify-between">
-          <span>Subtotal</span>
-          <span>${calculateSubtotal().toFixed(2)}</span>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Switch 
-              checked={applyTax} 
-              onCheckedChange={setApplyTax}
-              className="cursor-pointer"
-            />
-            <span>Apply Tax</span>
-          </div>
-          {applyTax && (
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                placeholder="Tax %"
-                value={taxRate}
-                onChange={(e) => setTaxRate(e.target.value)}
-                className="w-20 h-7 text-xs"
-              />
-              <span>${calculateTax().toFixed(2)}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Switch 
-              checked={applyDiscount} 
-              onCheckedChange={setApplyDiscount}
-              className="cursor-pointer"
-            />
-            <span>Apply Discount</span>
-          </div>
-          {applyDiscount && (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center bg-muted rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setDiscountType("percent")}
-                  className={cn(
-                    "px-3 py-1 text-xs flex items-center gap-1 transition-colors",
-                    discountType === "percent" ? "bg-orange-500 text-white" : "text-muted-foreground"
-                  )}
-                >
-                  <Percent className="h-3 w-3" />
-                  %
-                </button>
-                <button
-                  onClick={() => setDiscountType("amount")}
-                  className={cn(
-                    "px-3 py-1 text-xs flex items-center gap-1 transition-colors",
-                    discountType === "amount" ? "bg-orange-500 text-white" : "text-muted-foreground"
-                  )}
-                >
-                  <DollarSign className="h-3 w-3" />
-                  $
-                </button>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Invoice Form */}
+          <div className="space-y-6">
+            {/* BILL TO */}
+            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+              <div className="flex justify-center gap-2 font-semibold">
+                <span>Real Bill</span>
+                <Switch 
+                  className="cursor-pointer" 
+                  checked={isEstimate}
+                  onCheckedChange={setIsEstimate}
+                />
+                <span>Estimate Bill</span>
               </div>
-              <Input
-                type="number"
-                placeholder={discountType === "percent" ? "0%" : "$0"}
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                className="w-20 h-7 text-xs"
-              />
-              <span>-${calculateDiscount().toFixed(2)}</span>
-            </div>
-          )}
-        </div>
 
-        <div className="flex justify-between font-semibold text-sm pt-2 border-t">
-          <span>Total Amount</span>
-          <span className="text-orange-600">
-            ${calculateTotal().toFixed(2)}
-          </span>
-        </div>
-      </section>
+              <h2 className="font-semibold">Bill To</h2>
 
-      {/* ACTION */}
-      <div className="w-[90%] my-6 mb-24">
-        <Button className="w-full bg-orange-500 hover:bg-orange-600">
-          Save & Preview
-        </Button>
+              <div className="flex gap-2">
+                {isEstimate ? (
+                  <Input
+                    placeholder="Client name"
+                    value={customClientName}
+                    onChange={(e) => setCustomClientName(e.target.value)}
+                    className="flex-1 h-9 text-xs"
+                  />
+                ) : (
+                  <Popover open={openClient} onOpenChange={setOpenClient}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openClient}
+                        className="flex-1 h-9 text-xs justify-between"
+                      >
+                        {selectedClient ? selectedClient.name : "Select Client..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search client..." className="h-9" />
+                        <CommandList>
+                          <CommandEmpty>No client found.</CommandEmpty>
+                          <CommandGroup>
+                            {sampleClients.map((client) => (
+                              <CommandItem
+                                key={client.id}
+                                value={client.name}
+                                onSelect={() => {
+                                  setSelectedClient(client)
+                                  setOpenClient(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedClient?.id === client.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {client.name}
+                                <span className="ml-auto text-muted-foreground text-[10px]">
+                                  {client.email}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                <Button size="icon" className="h-9 w-9">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Input type="date" className="h-9 text-xs" />
+                <Input type="date" className="h-9 text-xs" />
+              </div>
+            </section>
+
+            {/* ITEMS */}
+            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+              <h2 className="font-semibold">Items</h2>
+
+              {/* ITEM ROW */}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
+                <div className="col-span-1 sm:col-span-2">
+                  {isEstimate ? (
+                    <Input
+                      placeholder="Item name"
+                      value={customItemName}
+                      onChange={(e) => setCustomItemName(e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  ) : (
+                    <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openProduct}
+                          className="w-full h-9 text-xs justify-between"
+                        >
+                          {selectedProduct ? selectedProduct.name : "Select Item..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search item..." className="h-9" />
+                          <CommandList>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                              {sampleProducts.map((product) => (
+                                <CommandItem
+                                  key={product.id}
+                                  value={product.name}
+                                  onSelect={() => {
+                                    setSelectedProduct(product)
+                                    setRate(product.price.toString())
+                                    setOpenProduct(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {product.name}
+                                  <span className="ml-auto text-muted-foreground">
+                                    ${product.price.toFixed(2)}
+                                  </span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+                <Input 
+                  placeholder="Qty" 
+                  type="number" 
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  className="h-9 text-xs" 
+                />
+                <Input 
+                  placeholder="Rate" 
+                  type="number" 
+                  value={isEstimate ? rate : (selectedProduct?.price || "")}
+                  onChange={(e) => setRate(e.target.value)}
+                  className="h-9 text-xs" 
+                />
+                <Button 
+                  onClick={addItem} 
+                  size="icon" 
+                  className="h-9 w-9 bg-orange-500 hover:bg-orange-600 justify-self-end"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* ITEMS LIST */}
+              {items.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  {items.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{item.name}</p>
+                        <p className="text-muted-foreground text-[10px]">
+                          {item.quantity} x ${item.rate.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="font-semibold">
+                          ${(item.quantity * item.rate).toFixed(2)}
+                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => removeItem(item.id)}
+                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* SUMMARY */}
+            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>${calculateSubtotal().toFixed(2)}</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={applyTax} 
+                    onCheckedChange={setApplyTax}
+                    className="cursor-pointer"
+                  />
+                  <span>Apply Tax</span>
+                </div>
+                {applyTax && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Tax %"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(e.target.value)}
+                      className="w-20 h-7 text-xs"
+                    />
+                    <span>${calculateTax().toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={applyDiscount} 
+                    onCheckedChange={setApplyDiscount}
+                    className="cursor-pointer"
+                  />
+                  <span>Apply Discount</span>
+                </div>
+                {applyDiscount && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-muted rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setDiscountType("percent")}
+                        className={cn(
+                          "px-3 py-1 text-xs flex items-center gap-1 transition-colors",
+                          discountType === "percent" ? "bg-orange-500 text-white" : "text-muted-foreground"
+                        )}
+                      >
+                        <Percent className="h-3 w-3" />
+                        %
+                      </button>
+                      <button
+                        onClick={() => setDiscountType("amount")}
+                        className={cn(
+                          "px-3 py-1 text-xs flex items-center gap-1 transition-colors",
+                          discountType === "amount" ? "bg-orange-500 text-white" : "text-muted-foreground"
+                        )}
+                      >
+                        <DollarSign className="h-3 w-3" />
+                        $
+                      </button>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder={discountType === "percent" ? "0%" : "$0"}
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      className="w-20 h-7 text-xs"
+                    />
+                    <span>-${calculateDiscount().toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between font-semibold text-sm pt-2 border-t">
+                <span>Total Amount</span>
+                <span className="text-orange-600">
+                  ${calculateTotal().toFixed(2)}
+                </span>
+              </div>
+            </section>
+          </div>
+
+          {/* Invoice Preview - Hidden on small screens */}
+          <div className="hidden xl:block">
+            <InvoiceView
+              invoiceNumber={invoiceNumber}
+              date={invoiceDate}
+              customer={customerForPDF}
+              items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
+              subtotal={calculateSubtotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0))}
+              tax={calculateTax()}
+              taxRate={parseFloat(taxRate)}
+              discount={calculateDiscount()}
+              discountType={discountType}
+              total={calculateTotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0) * 1.18)}
+            />
+          </div>
+        </div>
       </div>
     </main>
   )
