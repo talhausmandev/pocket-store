@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import {  SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { BottomNavbar } from "@/components/BottomNavbar";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -38,9 +37,6 @@ export default function RootLayout({
             <SidebarTrigger className="cursor-pointer my-2"/>
             {children}
         </SidebarProvider>
-        <div className="md:hidden">
-          <BottomNavbar/>
-        </div>
       </body>
     </html>
   );
