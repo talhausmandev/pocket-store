@@ -63,7 +63,7 @@ export default function InvoicesPage() {
                     Invoices
                 </div>
 
-                <Link href={"/invoices/create-invoice"} className="h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-white shadow hidden md:flex">
+                <Link href={"/invoices/create-invoice"} className="h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-white shadow flex">
                     <Plus className="h-5 w-5" />
                 </Link>
             </div>

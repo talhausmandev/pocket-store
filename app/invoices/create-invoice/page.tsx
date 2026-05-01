@@ -101,7 +101,7 @@ export default function CreateInvoicePage() {
   const [invoiceDate, setInvoiceDate] = useState("")
 
   useEffect(() => {
-    const configInvoiceData = ()=>{
+    const configInvoiceData = () => {
       setInvoiceNumber(`INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`)
       setInvoiceDate(new Date().toLocaleDateString("en-US", {
         year: "numeric",
@@ -109,7 +109,7 @@ export default function CreateInvoicePage() {
         day: "numeric",
       }))
     }
-    
+
     configInvoiceData()
   }, [])
 
@@ -242,11 +242,11 @@ export default function CreateInvoicePage() {
           {/* Invoice Form */}
           <div className="space-y-6">
             {/* BILL TO */}
-            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+            <section className=" w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-center gap-2 font-semibold">
                 <span>Real Bill</span>
-                <Switch 
-                  className="cursor-pointer" 
+                <Switch
+                  className="cursor-pointer"
                   checked={isEstimate}
                   onCheckedChange={setIsEstimate}
                 />
@@ -276,7 +276,7 @@ export default function CreateInvoicePage() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0">
+                    <PopoverContent className="w-[70%]  mx-10 p-0">
                       <Command>
                         <CommandInput placeholder="Search client..." className="h-9" />
                         <CommandList>
@@ -310,9 +310,14 @@ export default function CreateInvoicePage() {
                   </Popover>
                 )}
 
-                <Button size="icon" className="h-9 w-9">
+                <Button  size="icon" className="h-9 w-9">
                   <Plus className="h-4 w-4" />
                 </Button>
+              </div>
+
+              <div className="flex justify-around mt-2">
+                <div>Issue Date</div>
+                <div>Due Date</div>
               </div>
 
               <div className="flex gap-2">
@@ -322,7 +327,7 @@ export default function CreateInvoicePage() {
             </section>
 
             {/* ITEMS */}
-            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+            <section className="w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <h2 className="font-semibold">Items</h2>
 
               {/* ITEM ROW */}
@@ -348,7 +353,7 @@ export default function CreateInvoicePage() {
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0">
+                      <PopoverContent className="w-full p-0">
                         <Command>
                           <CommandInput placeholder="Search item..." className="h-9" />
                           <CommandList>
@@ -383,23 +388,23 @@ export default function CreateInvoicePage() {
                     </Popover>
                   )}
                 </div>
-                <Input 
-                  placeholder="Qty" 
-                  type="number" 
+                <Input
+                  placeholder="Qty"
+                  type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  className="h-9 text-xs" 
+                  className="h-9 text-xs"
                 />
-                <Input 
-                  placeholder="Rate" 
-                  type="number" 
+                <Input
+                  placeholder="Rate"
+                  type="number"
                   value={isEstimate ? rate : (selectedProduct?.price || "")}
                   onChange={(e) => setRate(e.target.value)}
-                  className="h-9 text-xs" 
+                  className="h-9 text-xs"
                 />
-                <Button 
-                  onClick={addItem} 
-                  size="icon" 
+                <Button
+                  onClick={addItem}
+                  size="icon"
                   className="h-9 w-9 bg-orange-500 hover:bg-orange-600 justify-self-end"
                 >
                   <Plus className="h-4 w-4" />
@@ -410,8 +415,8 @@ export default function CreateInvoicePage() {
               {items.length > 0 && (
                 <div className="space-y-2 mt-4">
                   {items.map((item) => (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
                     >
                       <div className="flex-1 min-w-0">
@@ -424,9 +429,9 @@ export default function CreateInvoicePage() {
                         <span className="font-semibold">
                           ${(item.quantity * item.rate).toFixed(2)}
                         </span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => removeItem(item.id)}
                           className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                         >
@@ -440,7 +445,7 @@ export default function CreateInvoicePage() {
             </section>
 
             {/* SUMMARY */}
-            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+            <section className="w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>${calculateSubtotal().toFixed(2)}</span>
@@ -448,8 +453,8 @@ export default function CreateInvoicePage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={applyTax} 
+                  <Switch
+                    checked={applyTax}
                     onCheckedChange={setApplyTax}
                     className="cursor-pointer"
                   />
@@ -471,8 +476,8 @@ export default function CreateInvoicePage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={applyDiscount} 
+                  <Switch
+                    checked={applyDiscount}
                     onCheckedChange={setApplyDiscount}
                     className="cursor-pointer"
                   />
