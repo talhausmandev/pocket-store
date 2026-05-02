@@ -78,7 +78,7 @@ export default function InvoiceView({
           <div className="col-span-2 font-semibold text-gray-600 text-right">Price</div>
           <div className="col-span-2 font-semibold text-gray-600 text-right">Total</div>
         </div>
-        {items.map((item, index) => (
+        {items.map((item: InvoiceItem, index: number) => (
           <div key={index} className="grid grid-cols-12 gap-2 py-2 border-b border-gray-100">
             <div className="col-span-6 text-gray-800">{item.name}</div>
             <div className="col-span-2 text-gray-600 text-center">{item.quantity}</div>
