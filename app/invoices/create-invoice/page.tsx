@@ -57,7 +57,7 @@ interface Client {
 
 interface InvoiceItem {
   id: string
-  ProductId: string
+  productId?: string
   name: string
   quantity: number
   rate: number
@@ -81,24 +81,15 @@ const sampleClients: Client[] = [
   { id: "4", name: "NextGen Systems", email: "support@nextgensystems.com" },
 ]
 
-const invoiceData = {
-  customer: {
-    name: "John Doe",
-    email: "john@example.com",
-  },
-  items: [],
-}
-
 export default function CreateInvoicePage() {
   const [openProduct, setOpenProduct] = useState(false)
   const [openClient, setOpenClient] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [isEstimate, setIsEstimate] = useState(false)
-  const [customItemName, setCustomItemName] = useState("")
+  const [isEstimate, setIsEstimate] = useState(true)
   const [customClientName, setCustomClientName] = useState("")
+  const [customClientEmail, setCustomClientEmail] = useState("")
   const [quantity, setQuantity] = useState("")
-  const [rate, setRate] = useState("")
   const [items, setItems] = useState<InvoiceItem[]>([])
   const [applyTax, setApplyTax] = useState(false)
   const [taxRate, setTaxRate] = useState("18")
@@ -128,28 +119,30 @@ export default function CreateInvoicePage() {
   }, [])
 
   const addItem = () => {
-    const itemName = isEstimate ? customItemName : selectedProduct?.name
-    const itemRate = isEstimate ? parseFloat(rate) || 0 : selectedProduct?.price || 0
+    if (!selectedProduct) return
     const itemQuantity = parseFloat(quantity) || 0
 
-    if (!itemName || itemQuantity <= 0) return
+    if (itemQuantity <= 0) return
 
     const newItem: InvoiceItem = {
       id: Date.now().toString(),
-      ProductId: selectedProduct?.id || "",
-      name: itemName,
+      productId: selectedProduct.id,
+      name: selectedProduct.name,
       quantity: itemQuantity,
-      rate: itemRate,
+      rate: selectedProduct.price,
       discountEnabled: false,
       discountType: "percent",
       discountValue: 0,
     }
 
     setItems([...items, newItem])
-    setCustomItemName("")
     setSelectedProduct(null)
     setQuantity("")
-    setRate("")
+    
+    // Switch to Real Bill when first product is added
+    if (items.length === 0) {
+      setIsEstimate(false)
+    }
   }
 
   const removeItem = (id: string) => {
@@ -238,8 +231,8 @@ export default function CreateInvoicePage() {
   }))
 
   const customerForPDF = {
-    name: isEstimate ? customClientName || "Customer" : selectedClient?.name || "Customer",
-    email: isEstimate ? "" : selectedClient?.email || "",
+    name: customClientName || selectedClient?.name || "Customer",
+    email: customClientEmail || selectedClient?.email || "",
   }
 
   return (
@@ -261,7 +254,7 @@ export default function CreateInvoicePage() {
                       invoiceNumber={invoiceNumber}
                       date={invoiceDate}
                       customer={customerForPDF}
-                      items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
+                      items={invoiceItemsForPDF}
                       subtotal={calculateSubtotal()}
                       tax={calculateTax()}
                       taxRate={parseFloat(taxRate)}
@@ -288,14 +281,14 @@ export default function CreateInvoicePage() {
           </DropdownMenu>
         </div>
 
-        {showPreview && (
+        {showPreview && invoiceItemsForPDF.length > 0 && (
           <div className="mb-8 border rounded-lg overflow-hidden h-[800px]">
             <PDFViewer width="100%" height="100%">
               <InvoicePDF
                 invoiceNumber={invoiceNumber}
                 date={invoiceDate}
                 customer={customerForPDF}
-                items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
+                items={invoiceItemsForPDF}
                 subtotal={calculateSubtotal()}
                 tax={calculateTax()}
                 taxRate={parseFloat(taxRate)}
@@ -313,75 +306,102 @@ export default function CreateInvoicePage() {
             {/* BILL TO */}
             <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-center gap-2 font-semibold">
-                <span>Real Bill</span>
+                <span className={cn(items.length === 0 ? "text-gray-400" : "")}>Real Bill</span>
                 <Switch 
                   className="cursor-pointer" 
                   checked={isEstimate}
-                  onCheckedChange={setIsEstimate}
+                  onCheckedChange={(checked) => {
+                    // Only allow switching to Real Bill if there are items
+                    if (!checked && items.length === 0) {
+                      return // Don't switch
+                    }
+                    setIsEstimate(checked)
+                  }}
                 />
                 <span>Estimate Bill</span>
               </div>
 
               <h2 className="font-semibold">Bill To</h2>
 
+              {/* Select Client */}
               <div className="flex gap-2">
-                {isEstimate ? (
-                  <Input
-                    placeholder="Client name"
-                    value={customClientName}
-                    onChange={(e) => setCustomClientName(e.target.value)}
-                    className="flex-1 h-9 text-xs"
-                  />
-                ) : (
-                  <Popover open={openClient} onOpenChange={setOpenClient}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openClient}
-                        className="flex-1 h-9 text-xs justify-between"
-                      >
-                        {selectedClient ? selectedClient.name : "Select Client..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full sm:w-[400px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search client..." className="h-9" />
-                        <CommandList>
-                          <CommandEmpty>No client found.</CommandEmpty>
-                          <CommandGroup>
-                            {sampleClients.map((client) => (
-                              <CommandItem
-                                key={client.id}
-                                value={client.name}
-                                onSelect={() => {
-                                  setSelectedClient(client)
-                                  setOpenClient(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedClient?.id === client.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {client.name}
-                                <span className="ml-auto text-muted-foreground text-[10px]">
-                                  {client.email}
-                                </span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                )}
-
+                <Popover open={openClient} onOpenChange={setOpenClient}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openClient}
+                      className="flex-1 h-9 text-xs justify-between"
+                    >
+                      {selectedClient ? selectedClient.name : "Select Client..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full sm:w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search client..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>No client found.</CommandEmpty>
+                        <CommandGroup>
+                          {sampleClients.map((client) => (
+                            <CommandItem
+                              key={client.id}
+                              value={client.name}
+                              onSelect={() => {
+                                setSelectedClient(client)
+                                setCustomClientName("")
+                                setCustomClientEmail("")
+                                setOpenClient(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedClient?.id === client.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {client.name}
+                              <span className="ml-auto text-muted-foreground text-[10px]">
+                                {client.email}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <Button size="icon" className="h-9 w-9">
                   <Plus className="h-4 w-4" />
                 </Button>
+              </div>
+
+              {/* OR Custom Client */}
+              <div className="flex items-center justify-center text-sm text-muted-foreground">
+                <span className="border-t flex-1 mr-2"></span>
+                OR
+                <span className="border-t flex-1 ml-2"></span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input
+                  placeholder="Client name"
+                  value={customClientName}
+                  onChange={(e) => {
+                    setCustomClientName(e.target.value)
+                    setSelectedClient(null)
+                  }}
+                  className="h-9 text-xs"
+                />
+                <Input
+                  placeholder="Client email"
+                  value={customClientEmail}
+                  onChange={(e) => {
+                    setCustomClientEmail(e.target.value)
+                    setSelectedClient(null)
+                  }}
+                  className="h-9 text-xs"
+                />
               </div>
 
               <div className="flex justify-around mt-2">
@@ -402,60 +422,50 @@ export default function CreateInvoicePage() {
               {/* ITEM ROW */}
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
                 <div className="col-span-1 sm:col-span-2">
-                  {isEstimate ? (
-                    <Input
-                      placeholder="Item name"
-                      value={customItemName}
-                      onChange={(e) => setCustomItemName(e.target.value)}
-                      className="h-9 text-xs"
-                    />
-                  ) : (
-                    <Popover open={openProduct} onOpenChange={setOpenProduct}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openProduct}
-                          className="w-full h-9 text-xs justify-between"
-                        >
-                          {selectedProduct ? selectedProduct.name : "Select Item..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search item..." className="h-9" />
-                          <CommandList>
-                            <CommandEmpty>No item found.</CommandEmpty>
-                            <CommandGroup>
-                              {sampleProducts.map((product) => (
-                                <CommandItem
-                                  key={product.id}
-                                  value={product.name}
-                                  onSelect={() => {
-                                    setSelectedProduct(product)
-                                    setRate(product.price.toString())
-                                    setOpenProduct(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {product.name}
-                                  <span className="ml-auto text-muted-foreground">
-                                    ${product.price.toFixed(2)}
-                                  </span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  )}
+                  <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openProduct}
+                        className="w-full h-9 text-xs justify-between"
+                      >
+                        {selectedProduct ? selectedProduct.name : "Select Item..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search item..." className="h-9" />
+                        <CommandList>
+                          <CommandEmpty>No item found.</CommandEmpty>
+                          <CommandGroup>
+                            {sampleProducts.map((product) => (
+                              <CommandItem
+                                key={product.id}
+                                value={product.name}
+                                onSelect={() => {
+                                  setSelectedProduct(product)
+                                  setOpenProduct(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {product.name}
+                                <span className="ml-auto text-muted-foreground">
+                                  ${product.price.toFixed(2)}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <Input 
                   placeholder="Qty" 
@@ -467,9 +477,9 @@ export default function CreateInvoicePage() {
                 <Input 
                   placeholder="Rate" 
                   type="number" 
-                  value={isEstimate ? rate : (selectedProduct?.price || "")}
-                  onChange={(e) => setRate(e.target.value)}
-                  className="h-9 text-xs" 
+                  value={selectedProduct?.price || ""}
+                  disabled
+                  className="h-9 text-xs bg-gray-50" 
                 />
                 <Button 
                   onClick={addItem} 
@@ -623,18 +633,24 @@ export default function CreateInvoicePage() {
 
           {/* Invoice Preview - Hidden on small screens */}
           <div className="hidden xl:block">
-            <InvoiceView
-              invoiceNumber={invoiceNumber}
-              date={invoiceDate}
-              customer={customerForPDF}
-              items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
-              subtotal={calculateSubtotal()}
-              tax={calculateTax()}
-              taxRate={parseFloat(taxRate)}
-              discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
-              discountType={discountType}
-              total={calculateTotal()}
-            />
+            {invoiceItemsForPDF.length > 0 ? (
+              <InvoiceView
+                invoiceNumber={invoiceNumber}
+                date={invoiceDate}
+                customer={customerForPDF}
+                items={invoiceItemsForPDF}
+                subtotal={calculateSubtotal()}
+                tax={calculateTax()}
+                taxRate={parseFloat(taxRate)}
+                discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
+                discountType={discountType}
+                total={calculateTotal()}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full min-h-[400px] text-muted-foreground">
+                <p>Add items to see invoice preview</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
