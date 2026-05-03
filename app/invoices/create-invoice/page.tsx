@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign, Download, Eye, MoreVertical } from "lucide-react"
+import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign, Download, Eye, MoreVertical, Edit2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -27,6 +27,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+
 import InvoiceView from "@/components/InvoiceView"
 import InvoicePDF from "@/components/InvoicePDF"
 
@@ -49,9 +57,13 @@ interface Client {
 
 interface InvoiceItem {
   id: string
+  ProductId: string
   name: string
   quantity: number
   rate: number
+  discountEnabled: boolean
+  discountType: "percent" | "amount"
+  discountValue: number
 }
 
 const sampleProducts: Product[] = [
@@ -74,10 +86,7 @@ const invoiceData = {
     name: "John Doe",
     email: "john@example.com",
   },
-  items: [
-    { name: "Product A", quantity: 2, price: 50 },
-    { name: "Product B", quantity: 1, price: 100 },
-  ],
+  items: [],
 }
 
 export default function CreateInvoicePage() {
@@ -99,6 +108,11 @@ export default function CreateInvoicePage() {
   const [showPreview, setShowPreview] = useState(false)
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [invoiceDate, setInvoiceDate] = useState("")
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false)
+  const [currentItem, setCurrentItem] = useState<InvoiceItem | null>(null)
+  const [tempDiscountEnabled, setTempDiscountEnabled] = useState(false)
+  const [tempDiscountType, setTempDiscountType] = useState<"percent" | "amount">("percent")
+  const [tempDiscountValue, setTempDiscountValue] = useState("")
 
   useEffect(() => {
     const configInvoiceData = () => {
@@ -122,9 +136,13 @@ export default function CreateInvoicePage() {
 
     const newItem: InvoiceItem = {
       id: Date.now().toString(),
+      ProductId: selectedProduct?.id || "",
       name: itemName,
       quantity: itemQuantity,
       rate: itemRate,
+      discountEnabled: false,
+      discountType: "percent",
+      discountValue: 0,
     }
 
     setItems([...items, newItem])
@@ -138,6 +156,53 @@ export default function CreateInvoicePage() {
     setItems(items.filter(item => item.id !== id))
   }
 
+  const openDiscountDialog = (item: InvoiceItem) => {
+    setCurrentItem(item)
+    setTempDiscountEnabled(item.discountEnabled)
+    setTempDiscountType(item.discountType)
+    setTempDiscountValue(item.discountValue.toString())
+    setDiscountDialogOpen(true)
+  }
+
+  const saveItemDiscount = () => {
+    if (!currentItem) return
+
+    setItems(items.map(item => 
+      item.id === currentItem.id 
+        ? {
+            ...item,
+            discountEnabled: tempDiscountEnabled,
+            discountType: tempDiscountType,
+            discountValue: parseFloat(tempDiscountValue) || 0,
+          }
+        : item
+    ))
+
+    setDiscountDialogOpen(false)
+    setCurrentItem(null)
+  }
+
+  const calculateItemTotal = (item: InvoiceItem) => {
+    const lineTotal = item.quantity * item.rate
+    if (!item.discountEnabled) return lineTotal
+
+    if (item.discountType === "percent") {
+      return lineTotal * (1 - (item.discountValue / 100))
+    } else {
+      return lineTotal - item.discountValue
+    }
+  }
+
+  const calculateItemDiscountAmount = (item: InvoiceItem) => {
+    if (!item.discountEnabled) return 0
+    const lineTotal = item.quantity * item.rate
+    if (item.discountType === "percent") {
+      return lineTotal * (item.discountValue / 100)
+    } else {
+      return item.discountValue
+    }
+  }
+
   const calculateSubtotal = () => {
     return items.reduce((total, item) => total + (item.quantity * item.rate), 0)
   }
@@ -147,7 +212,11 @@ export default function CreateInvoicePage() {
     return calculateSubtotal() * (parseFloat(taxRate) / 100)
   }
 
-  const calculateDiscount = () => {
+  const calculateTotalItemDiscounts = () => {
+    return items.reduce((total, item) => total + calculateItemDiscountAmount(item), 0)
+  }
+
+  const calculateInvoiceDiscount = () => {
     if (!applyDiscount) return 0
     const subtotal = calculateSubtotal()
     const discountNum = parseFloat(discountValue) || 0
@@ -159,7 +228,7 @@ export default function CreateInvoicePage() {
   }
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax() - calculateDiscount()
+    return calculateSubtotal() + calculateTax() - calculateTotalItemDiscounts() - calculateInvoiceDiscount()
   }
 
   const invoiceItemsForPDF = items.map(item => ({
@@ -193,12 +262,12 @@ export default function CreateInvoicePage() {
                       date={invoiceDate}
                       customer={customerForPDF}
                       items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
-                      subtotal={calculateSubtotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0))}
+                      subtotal={calculateSubtotal()}
                       tax={calculateTax()}
                       taxRate={parseFloat(taxRate)}
-                      discount={calculateDiscount()}
+                      discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
                       discountType={discountType}
-                      total={calculateTotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0) * 1.18)}
+                      total={calculateTotal()}
                     />
                   }
                   fileName={`invoice-${invoiceNumber}.pdf`}
@@ -227,12 +296,12 @@ export default function CreateInvoicePage() {
                 date={invoiceDate}
                 customer={customerForPDF}
                 items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
-                subtotal={calculateSubtotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0))}
+                subtotal={calculateSubtotal()}
                 tax={calculateTax()}
                 taxRate={parseFloat(taxRate)}
-                discount={calculateDiscount()}
+                discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
                 discountType={discountType}
-                total={calculateTotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0) * 1.18)}
+                total={calculateTotal()}
               />
             </PDFViewer>
           </div>
@@ -242,11 +311,11 @@ export default function CreateInvoicePage() {
           {/* Invoice Form */}
           <div className="space-y-6">
             {/* BILL TO */}
-            <section className=" w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
+            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-center gap-2 font-semibold">
                 <span>Real Bill</span>
-                <Switch
-                  className="cursor-pointer"
+                <Switch 
+                  className="cursor-pointer" 
                   checked={isEstimate}
                   onCheckedChange={setIsEstimate}
                 />
@@ -276,7 +345,7 @@ export default function CreateInvoicePage() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[70%]  mx-10 p-0">
+                    <PopoverContent className="w-full sm:w-[400px] p-0">
                       <Command>
                         <CommandInput placeholder="Search client..." className="h-9" />
                         <CommandList>
@@ -310,7 +379,7 @@ export default function CreateInvoicePage() {
                   </Popover>
                 )}
 
-                <Button  size="icon" className="h-9 w-9">
+                <Button size="icon" className="h-9 w-9">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -327,7 +396,7 @@ export default function CreateInvoicePage() {
             </section>
 
             {/* ITEMS */}
-            <section className="w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
+            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <h2 className="font-semibold">Items</h2>
 
               {/* ITEM ROW */}
@@ -388,23 +457,23 @@ export default function CreateInvoicePage() {
                     </Popover>
                   )}
                 </div>
-                <Input
-                  placeholder="Qty"
-                  type="number"
+                <Input 
+                  placeholder="Qty" 
+                  type="number" 
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs" 
                 />
-                <Input
-                  placeholder="Rate"
-                  type="number"
+                <Input 
+                  placeholder="Rate" 
+                  type="number" 
                   value={isEstimate ? rate : (selectedProduct?.price || "")}
                   onChange={(e) => setRate(e.target.value)}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs" 
                 />
-                <Button
-                  onClick={addItem}
-                  size="icon"
+                <Button 
+                  onClick={addItem} 
+                  size="icon" 
                   className="h-9 w-9 bg-orange-500 hover:bg-orange-600 justify-self-end"
                 >
                   <Plus className="h-4 w-4" />
@@ -415,28 +484,45 @@ export default function CreateInvoicePage() {
               {items.length > 0 && (
                 <div className="space-y-2 mt-4">
                   {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                    <div 
+                      key={item.id} 
+                      className="p-3 rounded-lg border bg-muted/30"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{item.name}</p>
-                        <p className="text-muted-foreground text-[10px]">
-                          {item.quantity} x ${item.rate.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className="font-semibold">
-                          ${(item.quantity * item.rate).toFixed(2)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.name}</p>
+                          <p className="text-muted-foreground text-[10px]">
+                            {item.quantity} x ${item.rate.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-right">
+                            {item.discountEnabled && (
+                              <p className="text-red-500 text-[10px]">
+                                -${calculateItemDiscountAmount(item).toFixed(2)}
+                              </p>
+                            )}
+                            <span className="font-semibold">
+                              ${calculateItemTotal(item).toFixed(2)}
+                            </span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => openDiscountDialog(item)}
+                            className="h-8 w-8"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => removeItem(item.id)}
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -445,16 +531,23 @@ export default function CreateInvoicePage() {
             </section>
 
             {/* SUMMARY */}
-            <section className="w-[90%] p-4 rounded-xl border bg-white shadow-sm space-y-3">
+            <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>${calculateSubtotal().toFixed(2)}</span>
               </div>
 
+              {calculateTotalItemDiscounts() > 0 && (
+                <div className="flex justify-between">
+                  <span>Item Discounts</span>
+                  <span className="text-red-600">-${calculateTotalItemDiscounts().toFixed(2)}</span>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch
-                    checked={applyTax}
+                  <Switch 
+                    checked={applyTax} 
                     onCheckedChange={setApplyTax}
                     className="cursor-pointer"
                   />
@@ -476,8 +569,8 @@ export default function CreateInvoicePage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch
-                    checked={applyDiscount}
+                  <Switch 
+                    checked={applyDiscount} 
                     onCheckedChange={setApplyDiscount}
                     className="cursor-pointer"
                   />
@@ -514,7 +607,7 @@ export default function CreateInvoicePage() {
                       onChange={(e) => setDiscountValue(e.target.value)}
                       className="w-20 h-7 text-xs"
                     />
-                    <span>-${calculateDiscount().toFixed(2)}</span>
+                    <span>-${calculateInvoiceDiscount().toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -535,16 +628,84 @@ export default function CreateInvoicePage() {
               date={invoiceDate}
               customer={customerForPDF}
               items={invoiceItemsForPDF.length > 0 ? invoiceItemsForPDF : invoiceData.items}
-              subtotal={calculateSubtotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0))}
+              subtotal={calculateSubtotal()}
               tax={calculateTax()}
               taxRate={parseFloat(taxRate)}
-              discount={calculateDiscount()}
+              discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
               discountType={discountType}
-              total={calculateTotal() || (invoiceData.items.reduce((t, i) => t + i.quantity * i.price, 0) * 1.18)}
+              total={calculateTotal()}
             />
           </div>
         </div>
       </div>
+
+      {/* Discount Dialog */}
+      <Dialog open={discountDialogOpen} onOpenChange={setDiscountDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Item Discount</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Enable Discount</span>
+              <Switch 
+                checked={tempDiscountEnabled} 
+                onCheckedChange={setTempDiscountEnabled}
+              />
+            </div>
+            
+            {tempDiscountEnabled && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                  <span className="font-medium">Discount Type:</span>
+                  <div className="flex items-center bg-muted rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setTempDiscountType("percent")}
+                      className={cn(
+                        "px-3 py-1 text-xs flex items-center gap-1 transition-colors",
+                        tempDiscountType === "percent" ? "bg-orange-500 text-white" : "text-muted-foreground"
+                      )}
+                    >
+                      <Percent className="h-3 w-3" />
+                      %
+                    </button>
+                    <button
+                      onClick={() => setTempDiscountType("amount")}
+                      className={cn(
+                        "px-3 py-1 text-xs flex items-center gap-1 transition-colors",
+                        tempDiscountType === "amount" ? "bg-orange-500 text-white" : "text-muted-foreground"
+                      )}
+                    >
+                      <DollarSign className="h-3 w-3" />
+                      $
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-medium">
+                    Discount Value ({tempDiscountType === "percent" ? "%" : "$"})
+                  </span>
+                  <Input
+                    type="number"
+                    placeholder={tempDiscountType === "percent" ? "0%" : "$0"}
+                    value={tempDiscountValue}
+                    onChange={(e) => setTempDiscountValue(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDiscountDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-orange-500 hover:bg-orange-600" onClick={saveItemDiscount}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
