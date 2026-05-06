@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save } from "lucide-react"
+import { Save } from "lucide-react"
 import Link from "next/link"
 
 import { Input } from "@/components/ui/input"
@@ -43,7 +43,7 @@ export default function CreateProductPage() {
                     <h1 className="text-xl font-bold mx-4">Create Product / Service</h1>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 w-[90%] flex flex-col border border-black justify-center bg-white p-6 rounded-lg shadow-md shadow-black">
+                <form onSubmit={handleSubmit} className="space-y-4 w-[90%] flex flex-col  justify-center bg-white p-6 rounded-lg shadow-md shadow-black">
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Product / Service Name</label>
                         <Input
@@ -92,29 +92,6 @@ export default function CreateProductPage() {
                                 required
                             />
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                        <input
-                            type="checkbox"
-                            id="tax"
-                            name="tax"
-                            checked={formData.tax}
-                            onChange={handleChange}
-                            className="h-4 w-4 rounded border-input"
-                        />
-                        <label htmlFor="tax" className="text-sm font-medium">Apply Tax</label>
-                        {formData.tax && (
-                            <Input
-                                name="taxRate"
-                                type="number"
-                                step="0.01"
-                                value={formData.taxRate}
-                                onChange={handleChange}
-                                placeholder="Tax %"
-                                className="w-24 ml-auto"
-                            />
-                        )}
                     </div>
 
                     <div className="flex gap-3 pt-4">

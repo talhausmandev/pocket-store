@@ -14,35 +14,31 @@ import { Plus } from "lucide-react"
 
 interface Client {
     name: string
-    email: string
-    phone: string
+    contact: string
 }
 
 export default function ClientsPage() {
     const [clients, setClients] = useState<Client[]>([
         {
             name: "Tech Solutions Pvt. Ltd.",
-            email: "contact@techsolutions.com",
-            phone: "+91 98765 43210",
+            contact: "contact@techsolutions.com",
         },
         {
             name: "Creative Studio",
-            email: "hello@creativestudio.com",
-            phone: "+91 91234 56789",
+            contact: "+91 91234 56789",
         },
     ])
 
     const [newClient, setNewClient] = useState<Client>({
         name: "",
-        email: "",
-        phone: "",
+        contact: "",
     })
 
     const addClient = () => {
         if (!newClient.name) return
 
         setClients((prev) => [...prev, newClient])
-        setNewClient({ name: "", email: "", phone: "" })
+        setNewClient({ name: "", contact: "" })
     }
 
     return (
@@ -77,18 +73,10 @@ export default function ClientsPage() {
                         />
 
                         <Input
-                            placeholder="Email"
-                            value={newClient.email}
+                            placeholder="Contact"
+                            value={newClient.contact}
                             onChange={(e) =>
-                                setNewClient({ ...newClient, email: e.target.value })
-                            }
-                        />
-
-                        <Input
-                            placeholder="Phone"
-                            value={newClient.phone}
-                            onChange={(e) =>
-                                setNewClient({ ...newClient, phone: e.target.value })
+                                setNewClient({ ...newClient, contact: e.target.value })
                             }
                         />
 
@@ -128,15 +116,12 @@ export default function ClientsPage() {
                                     {client.name}
                                 </p>
                                 <p className="text-muted-foreground truncate text-[10px]">
-                                    {client.email}
+                                    {client.contact}
                                 </p>
                             </div>
                         </div>
 
-                        {/* RIGHT */}
-                        <div className="text-[10px] text-muted-foreground">
-                            {client.phone}
-                        </div>
+                        
                     </div>
                 ))}
             </section>

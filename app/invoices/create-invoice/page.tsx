@@ -52,7 +52,7 @@ interface Product {
 interface Client {
   id: string
   name: string
-  email: string
+  contact: string
 }
 
 interface InvoiceItem {
@@ -75,10 +75,10 @@ const sampleProducts: Product[] = [
 ]
 
 const sampleClients: Client[] = [
-  { id: "1", name: "Tech Solutions Pvt. Ltd.", email: "contact@techsolutions.com" },
-  { id: "2", name: "Creative Studio", email: "hello@creativestudio.com" },
-  { id: "3", name: "Bright Developers", email: "info@brightdevs.com" },
-  { id: "4", name: "NextGen Systems", email: "support@nextgensystems.com" },
+  { id: "1", name: "Tech Solutions Pvt. Ltd.", contact: "contact@techsolutions.com" },
+  { id: "2", name: "Creative Studio", contact: "hello@creativestudio.com" },
+  { id: "3", name: "Bright Developers", contact: "info@brightdevs.com" },
+  { id: "4", name: "NextGen Systems", contact: "support@nextgensystems.com" },
 ]
 
 export default function CreateInvoicePage() {
@@ -88,7 +88,7 @@ export default function CreateInvoicePage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isEstimate, setIsEstimate] = useState(true)
   const [customClientName, setCustomClientName] = useState("")
-  const [customClientEmail, setCustomClientEmail] = useState("")
+  const [customClientContact, setCustomClientContact] = useState("")
   const [quantity, setQuantity] = useState("")
   const [items, setItems] = useState<InvoiceItem[]>([])
   const [applyTax, setApplyTax] = useState(false)
@@ -138,7 +138,7 @@ export default function CreateInvoicePage() {
     setItems([...items, newItem])
     setSelectedProduct(null)
     setQuantity("")
-    
+
     // Switch to Real Bill when first product is added
     if (items.length === 0) {
       setIsEstimate(false)
@@ -160,14 +160,14 @@ export default function CreateInvoicePage() {
   const saveItemDiscount = () => {
     if (!currentItem) return
 
-    setItems(items.map(item => 
-      item.id === currentItem.id 
+    setItems(items.map(item =>
+      item.id === currentItem.id
         ? {
-            ...item,
-            discountEnabled: tempDiscountEnabled,
-            discountType: tempDiscountType,
-            discountValue: parseFloat(tempDiscountValue) || 0,
-          }
+          ...item,
+          discountEnabled: tempDiscountEnabled,
+          discountType: tempDiscountType,
+          discountValue: parseFloat(tempDiscountValue) || 0,
+        }
         : item
     ))
 
@@ -232,7 +232,7 @@ export default function CreateInvoicePage() {
 
   const customerForPDF = {
     name: customClientName || selectedClient?.name || "Customer",
-    email: customClientEmail || selectedClient?.email || "",
+    contact: customClientContact || selectedClient?.contact || "",
   }
 
   return (
@@ -307,10 +307,10 @@ export default function CreateInvoicePage() {
             <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-center gap-2 font-semibold">
                 <span className={cn(items.length === 0 ? "text-gray-400" : "")}>Real Bill</span>
-                <Switch 
-                  className="cursor-pointer" 
+                <Switch
+                  className="cursor-pointer"
                   checked={isEstimate}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     // Only allow switching to Real Bill if there are items
                     if (!checked && items.length === 0) {
                       return // Don't switch
@@ -350,7 +350,7 @@ export default function CreateInvoicePage() {
                               onSelect={() => {
                                 setSelectedClient(client)
                                 setCustomClientName("")
-                                setCustomClientEmail("")
+                                setCustomClientContact("")
                                 setOpenClient(false)
                               }}
                             >
@@ -362,7 +362,7 @@ export default function CreateInvoicePage() {
                               />
                               {client.name}
                               <span className="ml-auto text-muted-foreground text-[10px]">
-                                {client.email}
+                                {client.contact}
                               </span>
                             </CommandItem>
                           ))}
@@ -394,10 +394,10 @@ export default function CreateInvoicePage() {
                   className="h-9 text-xs"
                 />
                 <Input
-                  placeholder="Client email"
-                  value={customClientEmail}
+                  placeholder="Client contact"
+                  value={customClientContact}
                   onChange={(e) => {
-                    setCustomClientEmail(e.target.value)
+                    setCustomClientContact(e.target.value)
                     setSelectedClient(null)
                   }}
                   className="h-9 text-xs"
@@ -467,23 +467,23 @@ export default function CreateInvoicePage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <Input 
-                  placeholder="Qty" 
-                  type="number" 
+                <Input
+                  placeholder="Qty"
+                  type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  className="h-9 text-xs" 
+                  className="h-9 text-xs"
                 />
-                <Input 
-                  placeholder="Rate" 
-                  type="number" 
+                <Input
+                  placeholder="Rate"
+                  type="number"
                   value={selectedProduct?.price || ""}
                   disabled
-                  className="h-9 text-xs bg-gray-50" 
+                  className="h-9 text-xs bg-gray-50"
                 />
-                <Button 
-                  onClick={addItem} 
-                  size="icon" 
+                <Button
+                  onClick={addItem}
+                  size="icon"
                   className="h-9 w-9 bg-orange-500 hover:bg-orange-600 justify-self-end"
                 >
                   <Plus className="h-4 w-4" />
@@ -494,8 +494,8 @@ export default function CreateInvoicePage() {
               {items.length > 0 && (
                 <div className="space-y-2 mt-4">
                   {items.map((item) => (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="p-3 rounded-lg border bg-muted/30"
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -516,17 +516,17 @@ export default function CreateInvoicePage() {
                               ${calculateItemTotal(item).toFixed(2)}
                             </span>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => openDiscountDialog(item)}
                             className="h-8 w-8"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => removeItem(item.id)}
                             className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                           >
@@ -556,8 +556,8 @@ export default function CreateInvoicePage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={applyTax} 
+                  <Switch
+                    checked={applyTax}
                     onCheckedChange={setApplyTax}
                     className="cursor-pointer"
                   />
@@ -579,8 +579,8 @@ export default function CreateInvoicePage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={applyDiscount} 
+                  <Switch
+                    checked={applyDiscount}
                     onCheckedChange={setApplyDiscount}
                     className="cursor-pointer"
                   />
@@ -664,12 +664,12 @@ export default function CreateInvoicePage() {
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
               <span className="font-medium">Enable Discount</span>
-              <Switch 
-                checked={tempDiscountEnabled} 
+              <Switch
+                checked={tempDiscountEnabled}
                 onCheckedChange={setTempDiscountEnabled}
               />
             </div>
-            
+
             {tempDiscountEnabled && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">

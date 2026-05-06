@@ -4,8 +4,7 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export interface IClient extends Document {
   storeId: Types.ObjectId;
   name: string;
-  phone?: string;
-  email?: string;
+  contact?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,8 +17,7 @@ const clientSchema = new Schema<IClient>(
       required: true,
     },
     name: { type: String, required: true },
-    phone: String,
-    email: String,
+    contact: String,
   },
   { timestamps: true }
 );

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
-import "./globals.css";
-import {  SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import "@/app/globals.css";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -29,14 +30,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={ `${geistSans.variable} ${geistMono.variable} font-sans ${inter.variable}` }
+      className={`${geistSans.variable} ${geistMono.variable} font-sans ${inter.variable}`}
     >
       <body className="min-h-full flex flex-col">
-        <SidebarProvider>
-          <AppSidebar />
-            <SidebarTrigger className="cursor-pointer my-2"/>
+        <ClerkProvider>
+          <SidebarProvider>
+
+            <AppSidebar />
+            <SidebarTrigger className="cursor-pointer my-2" />
             {children}
-        </SidebarProvider>
+          </SidebarProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

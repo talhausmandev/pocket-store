@@ -8,7 +8,7 @@ import {
 
 interface Customer {
   name: string
-  email: string
+  contact: string
 }
 
 interface InvoiceItem {
@@ -241,7 +241,7 @@ export default function InvoicePDF({
         <View style={styles.customerInfo}>
           <Text style={styles.customerLabel}>Bill To:</Text>
           <Text style={styles.customerName}>{customer.name}</Text>
-          <Text style={styles.customerEmail}>{customer.email}</Text>
+          <Text style={styles.customerEmail}>{customer.contact}</Text>
         </View>
 
         {/* Items Table */}

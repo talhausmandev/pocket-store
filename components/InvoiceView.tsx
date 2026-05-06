@@ -3,7 +3,7 @@
 
 interface Customer {
   name: string
-  email: string
+  contact: string
 }
 
 interface InvoiceItem {
@@ -67,7 +67,7 @@ export default function InvoiceView({
       <div className="mb-8">
         <p className="text-sm text-gray-500 mb-1">Bill To:</p>
         <p className="font-semibold text-gray-800">{customer.name}</p>
-        <p className="text-gray-600">{customer.email}</p>
+        <p className="text-gray-600">{customer.contact}</p>
       </div>
 
       {/* Items Table */}
