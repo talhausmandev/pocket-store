@@ -4,12 +4,11 @@ import {
   Text,
   View,
   StyleSheet,
-  Image,
 } from "@react-pdf/renderer"
 
 interface Customer {
   name: string
-  email: string
+  contact: string
 }
 
 interface InvoiceItem {
@@ -30,7 +29,6 @@ interface InvoicePDFProps {
   discountType: "percent" | "amount"
   total: number
   companyName?: string
-  companyLogo?: string
 }
 
 const formatCurrency = (amount: number) => {
@@ -217,7 +215,6 @@ export default function InvoicePDF({
   discountType,
   total,
   companyName = "Pocket Store",
-  companyLogo,
 }: InvoicePDFProps) {
   return (
     <Document>
@@ -225,16 +222,12 @@ export default function InvoicePDF({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.companyInfo}>
-            {companyLogo ? (
-              <Image src={companyLogo} style={styles.companyLogo} />
-            ) : (
-              <View
-                style={[
-                  styles.companyLogo,
-                  { backgroundColor: "#ffedd5", borderRadius: 8 },
-                ]}
-              />
-            )}
+            <View
+              style={[
+                styles.companyLogo,
+                { backgroundColor: "#ffedd5", borderRadius: 8 },
+              ]}
+            />
             <Text style={styles.companyName}>{companyName}</Text>
           </View>
           <View style={styles.invoiceInfo}>
@@ -248,7 +241,7 @@ export default function InvoicePDF({
         <View style={styles.customerInfo}>
           <Text style={styles.customerLabel}>Bill To:</Text>
           <Text style={styles.customerName}>{customer.name}</Text>
-          <Text style={styles.customerEmail}>{customer.email}</Text>
+          <Text style={styles.customerEmail}>{customer.contact}</Text>
         </View>
 
         {/* Items Table */}
@@ -259,7 +252,7 @@ export default function InvoicePDF({
             <Text style={styles.tableHeaderPrice}>Price</Text>
             <Text style={styles.tableHeaderTotal}>Total</Text>
           </View>
-          {items.map((item, index) => (
+          {items.map((item: InvoiceItem, index: number) => (
             <View key={index} style={styles.tableRow}>
               <Text style={styles.tableItem}>{item.name}</Text>
               <Text style={styles.tableQty}>{item.quantity}</Text>
