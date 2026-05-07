@@ -4,6 +4,7 @@ import { useState } from "react"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -61,6 +62,9 @@ export default function ClientsPage() {
                 <DialogContent className="text-xs">
                     <DialogHeader>
                         <DialogTitle>Add Client</DialogTitle>
+                        <DialogDescription>
+                            Add a new client by entering their name and contact details.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-3">
