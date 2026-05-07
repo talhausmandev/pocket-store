@@ -7,14 +7,25 @@ interface IInvoiceItem {
     price: number;
     quantity: number;
     total: number;
+    discountEnabled?: boolean;
+    discountType?: "percent" | "amount";
+    discountValue?: number;
 }
 
 export interface IInvoice extends Document {
     storeId: Types.ObjectId;
+    invoiceNumber: string;
+    issueDate: Date;
+    dueDate?: Date;
+    isEstimate: boolean;
     clientId? : Types.ObjectId;   // reference
     clientName?: string;         // snapshot
-    clientPhone?: string;
+    clientContact?: string;
     items: IInvoiceItem[];
+    subtotalAmount: number;
+    taxRate?: number;
+    taxAmount: number;
+    discountAmount: number;
     totalAmount: number;
     paidAmount: number;
     status: "paid" | "overdue" | "pending";
@@ -29,6 +40,9 @@ const invoiceItemSchema = new Schema<IInvoiceItem>(
         price: Number,
         quantity: Number,
         total: Number,
+        discountEnabled: Boolean,
+        discountType: { type: String, enum: ["percent", "amount"] },
+        discountValue: Number,
     },
     { _id: false }
 );
@@ -40,11 +54,20 @@ const invoiceSchema = new Schema<IInvoice>(
             ref: "Store",
             required: true,
         },
+        invoiceNumber: { type: String, required: true, index: true },
+        issueDate: { type: Date, required: true, index: true },
+        dueDate: { type: Date },
+        isEstimate: { type: Boolean, default: true },
         clientId : { type: Schema.Types.ObjectId, ref: "Client" },
         clientName : String,
-        clientPhone : String,
+        clientContact : String,
         items: [invoiceItemSchema],
+        subtotalAmount: { type: Number, required: true },
+        taxRate: { type: Number, default: 0 },
+        taxAmount: { type: Number, default: 0 },
+        discountAmount: { type: Number, default: 0 },
         totalAmount: { type: Number, required: true },
+        paidAmount: { type: Number, default: 0 },
         status: {
             type: String,
             enum: ["paid", "overdue", "pending"],
@@ -54,4 +77,4 @@ const invoiceSchema = new Schema<IInvoice>(
     { timestamps: true }
 );
 
-export const Invoice = mongoose.model<IInvoice>("Invoice", invoiceSchema);
+export const Invoice = mongoose.models.Invoice || mongoose.model<IInvoice>("Invoice", invoiceSchema);

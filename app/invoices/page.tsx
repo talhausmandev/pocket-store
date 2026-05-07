@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -9,43 +10,14 @@ import Link from "next/link"
 type Status = "paid" | "pending" | "overdue"
 
 interface Invoice {
-    invoiceId: string
+    id: string
+    invoiceNumber: string
     customerName: string
     amount: number
-    date: string
+    issueDate: string | null
     status: Status
+    isEstimate: boolean
 }
-
-const invoices: Invoice[] = [
-    {
-        invoiceId: "INV-2024-00128",
-        customerName: "Tech Solutions Pvt. Ltd.",
-        amount: 24800,
-        date: "12 May 2024",
-        status: "paid",
-    },
-    {
-        invoiceId: "INV-2024-00127",
-        customerName: "Creative Studio",
-        amount: 18600,
-        date: "10 May 2024",
-        status: "paid",
-    },
-    {
-        invoiceId: "INV-2024-00126",
-        customerName: "Bright Developers",
-        amount: 36400,
-        date: "08 May 2024",
-        status: "pending",
-    },
-    {
-        invoiceId: "INV-2024-00125",
-        customerName: "NextGen Systems",
-        amount: 52000,
-        date: "05 May 2024",
-        status: "overdue",
-    },
-]
 
 const statusStyles: Record<Status, string> = {
     paid: "bg-green-100 text-green-700",
@@ -54,6 +26,43 @@ const statusStyles: Record<Status, string> = {
 }
 
 export default function InvoicesPage() {
+    const [search, setSearch] = useState("")
+    const [activeTab, setActiveTab] = useState<"all" | Status>("all")
+    const [invoices, setInvoices] = useState<Invoice[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    const loadInvoices = async (q: string, status: "all" | Status) => {
+        setError(null)
+        setIsLoading(true)
+        try {
+            const url = new URL("/api/invoice", window.location.origin)
+            url.searchParams.set("status", status)
+            if (q.trim()) url.searchParams.set("q", q.trim())
+
+            const res = await fetch(url.toString(), { cache: "no-store" })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to load invoices")
+                setInvoices([])
+                return
+            }
+            setInvoices(Array.isArray(data?.invoices) ? data.invoices : [])
+        } catch {
+            setError("Failed to load invoices")
+            setInvoices([])
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            void loadInvoices(search, activeTab)
+        }, 200)
+        return () => clearTimeout(t)
+    }, [search, activeTab])
+
     return (
         <main className="w-full text-xs">
 
@@ -73,6 +82,8 @@ export default function InvoicesPage() {
                 <Input
                     placeholder="Search invoices..."
                     className="text-xs h-9"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                 />
                 <Button variant="outline" size="icon" className="h-9 w-9">
                     <Filter className="h-4 w-4" />
@@ -81,13 +92,14 @@ export default function InvoicesPage() {
 
             {/* FILTER TABS */}
             <section className="w-[90%] mt-3 flex gap-2">
-                {["all", "paid", "pending", "overdue"].map((tab) => (
+                {(["all", "paid", "pending", "overdue"] as const).map((tab) => (
                     <button
                         key={tab}
-                        className={`px-3 py-1 rounded-full text-xs capitalize ${tab === "all"
+                        className={`px-3 py-1 rounded-full text-xs capitalize ${tab === activeTab
                             ? "bg-orange-500 text-white"
                             : "bg-muted text-muted-foreground"
                             }`}
+                        onClick={() => setActiveTab(tab)}
                     >
                         {tab}
                     </button>
@@ -96,15 +108,21 @@ export default function InvoicesPage() {
 
             {/* INVOICE LIST */}
             <section className="w-[90%] mt-4 space-y-3 mb-24">
-                {invoices.map((item, index) => (
-                    <div
-                        key={index}
-                        className="p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
+                {error ? <div className="text-xs text-red-600">{error}</div> : null}
+                {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
+                {!isLoading && invoices.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">No invoices yet.</div>
+                ) : null}
+                {invoices.map((item) => (
+                    <Link
+                        key={item.id}
+                        href={`/invoices/${item.id}`}
+                        className="block p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
                     >
                         {/* TOP ROW */}
                         <div className="flex justify-between items-center">
                             <div className="font-semibold">
-                                {item.invoiceId}
+                                {item.invoiceNumber}
                             </div>
 
                             <div className="font-semibold">
@@ -116,14 +134,16 @@ export default function InvoicesPage() {
                         <div className="flex justify-between items-center mt-1 text-muted-foreground">
                             <div className="min-w-0">
                                 <p className="truncate">{item.customerName}</p>
-                                <p className="text-[10px]">{item.date}</p>
+                                <p className="text-[10px]">
+                                    {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
+                                </p>
                             </div>
 
                             <Badge className={statusStyles[item.status]}>
                                 {item.status}
                             </Badge>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </section>
         </main>

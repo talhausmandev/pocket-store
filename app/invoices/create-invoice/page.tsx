@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign, Download, Eye, MoreVertical, Edit2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
+import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +44,7 @@ import {
   PDFDownloadLink,
   PDFViewer,
 } from "@react-pdf/renderer"
+import { DialogDescription } from "@radix-ui/react-dialog"
 
 interface Product {
   id: string
@@ -74,18 +77,17 @@ const sampleProducts: Product[] = [
   { id: "5", name: "USB Cable", price: 9.99 },
 ]
 
-const sampleClients: Client[] = [
-  { id: "1", name: "Tech Solutions Pvt. Ltd.", contact: "contact@techsolutions.com" },
-  { id: "2", name: "Creative Studio", contact: "hello@creativestudio.com" },
-  { id: "3", name: "Bright Developers", contact: "info@brightdevs.com" },
-  { id: "4", name: "NextGen Systems", contact: "support@nextgensystems.com" },
-]
-
 export default function CreateInvoicePage() {
+  const router = useRouter()
   const [openProduct, setOpenProduct] = useState(false)
   const [openClient, setOpenClient] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [storeName, setStoreName] = useState("Pocket Store")
+  const [clients, setClients] = useState<Client[]>([])
+  const [clientsError, setClientsError] = useState<string | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [productsError, setProductsError] = useState<string | null>(null)
   const [isEstimate, setIsEstimate] = useState(true)
   const [customClientName, setCustomClientName] = useState("")
   const [customClientContact, setCustomClientContact] = useState("")
@@ -99,6 +101,10 @@ export default function CreateInvoicePage() {
   const [showPreview, setShowPreview] = useState(false)
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [invoiceDate, setInvoiceDate] = useState("")
+  const [issueDateValue, setIssueDateValue] = useState("")
+  const [dueDateValue, setDueDateValue] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false)
   const [currentItem, setCurrentItem] = useState<InvoiceItem | null>(null)
   const [tempDiscountEnabled, setTempDiscountEnabled] = useState(false)
@@ -107,15 +113,102 @@ export default function CreateInvoicePage() {
 
   useEffect(() => {
     const configInvoiceData = () => {
-      setInvoiceNumber(`INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`)
-      setInvoiceDate(new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }))
+      const now = new Date()
+      const localIsoToday = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10)
+      const due = new Date(localIsoToday)
+      due.setDate(due.getDate() + 7)
+      const localIsoDue = new Date(due.getTime() - due.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10)
+
+      setInvoiceNumber(
+        `INV-${now.getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`
+      )
+      setIssueDateValue(localIsoToday)
+      setDueDateValue(localIsoDue)
+      setInvoiceDate(
+        new Date(localIsoToday).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      )
     }
 
     configInvoiceData()
+  }, [])
+
+  useEffect(() => {
+    const loadClients = async () => {
+      setClientsError(null)
+      try {
+        const res = await fetch("/api/client", { cache: "no-store" })
+        const data = await res.json().catch(() => null)
+        if (!res.ok) {
+          setClientsError(typeof data?.error === "string" ? data.error : "Failed to load clients")
+          setClients([])
+          return
+        }
+
+        setClients(Array.isArray(data?.clients) ? data.clients : [])
+      } catch {
+        setClientsError("Failed to load clients")
+        setClients([])
+      }
+    }
+
+    const t = setTimeout(() => {
+      void loadClients()
+    }, 0)
+
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    const loadStore = async () => {
+      try {
+        const res = await fetch("/api/store", { cache: "no-store" })
+        const data = await res.json().catch(() => null)
+        const name = typeof data?.store?.name === "string" ? data.store.name.trim() : ""
+        if (res.ok && name) {
+          setStoreName(name)
+        }
+      } catch {}
+    }
+
+    const t = setTimeout(() => {
+      void loadStore()
+    }, 0)
+
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setProductsError(null)
+      try {
+        const res = await fetch("/api/product", { cache: "no-store" })
+        const data = await res.json().catch(() => null)
+        if (!res.ok) {
+          setProductsError(typeof data?.error === "string" ? data.error : "Failed to load products")
+          setProducts([])
+          return
+        }
+
+        setProducts(Array.isArray(data?.products) ? data.products : [])
+      } catch {
+        setProductsError("Failed to load products")
+        setProducts([])
+      }
+    }
+
+    const t = setTimeout(() => {
+      void loadProducts()
+    }, 0)
+
+    return () => clearTimeout(t)
   }, [])
 
   const addItem = () => {
@@ -235,51 +328,128 @@ export default function CreateInvoicePage() {
     contact: customClientContact || selectedClient?.contact || "",
   }
 
+  const saveInvoice = async () => {
+    setSaveError(null)
+    if (items.length === 0) {
+      setSaveError("Add at least one item")
+      return
+    }
+
+    const hasInvalidProduct = items.some((it) => !it.productId || !/^[a-f\d]{24}$/i.test(it.productId))
+    if (hasInvalidProduct) {
+      setSaveError("Create products first, then add them to the invoice")
+      return
+    }
+
+    const clientName = (customClientName || selectedClient?.name || "").trim()
+    if (!clientName) {
+      setSaveError("Select or enter a client")
+      return
+    }
+
+    if (!issueDateValue) {
+      setSaveError("Issue date is required")
+      return
+    }
+
+    if (!isEstimate && !dueDateValue) {
+      setSaveError("Due date is required for real bills")
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceNumber,
+          issueDate: issueDateValue,
+          dueDate: dueDateValue,
+          isEstimate,
+          clientId: selectedClient?.id ?? "",
+          clientName,
+          clientContact: (customClientContact || selectedClient?.contact || "").trim(),
+          items,
+          applyTax,
+          taxRate,
+          applyDiscount,
+          discountType,
+          discountValue,
+        }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setSaveError(typeof data?.error === "string" ? data.error : "Failed to save invoice")
+        return
+      }
+
+      router.push("/invoices")
+      router.refresh()
+    } catch {
+      setSaveError("Failed to save invoice")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <main className="w-full">
       <div className="w-full max-w-7xl mx-auto px-4 my-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold">Create Invoice</h1>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <PDFDownloadLink
-                  document={
-                    <InvoicePDF
-                      invoiceNumber={invoiceNumber}
-                      date={invoiceDate}
-                      customer={customerForPDF}
-                      items={invoiceItemsForPDF}
-                      subtotal={calculateSubtotal()}
-                      tax={calculateTax()}
-                      taxRate={parseFloat(taxRate)}
-                      discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
-                      discountType={discountType}
-                      total={calculateTotal()}
-                    />
-                  }
-                  fileName={`invoice-${invoiceNumber}.pdf`}
-                >
-                  {({ loading }) => (
-                    <div className="flex items-center">
-                      <Download className="h-4 w-4 mr-2" />
-                      {loading ? "Generating PDF..." : "Download PDF"}
-                    </div>
-                  )}
-                </PDFDownloadLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowPreview(!showPreview)}>
-                <Eye className="h-4 w-4 mr-2" />
-                {showPreview ? "Hide Preview" : "Preview PDF"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button
+              className="bg-orange-500 hover:bg-orange-600"
+              onClick={saveInvoice}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Invoice"}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <PDFDownloadLink
+                    document={
+                      <InvoicePDF
+                        invoiceNumber={invoiceNumber}
+                        date={invoiceDate}
+                        customer={customerForPDF}
+                        items={invoiceItemsForPDF}
+                        subtotal={calculateSubtotal()}
+                        tax={calculateTax()}
+                        taxRate={parseFloat(taxRate)}
+                        discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
+                        discountType={discountType}
+                        total={calculateTotal()}
+                        companyName={storeName}
+                      />
+                    }
+                    fileName={`invoice-${invoiceNumber}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <div className="flex items-center">
+                        <Download className="h-4 w-4 mr-2" />
+                        {loading ? "Generating PDF..." : "Download PDF"}
+                      </div>
+                    )}
+                  </PDFDownloadLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowPreview(!showPreview)}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  {showPreview ? "Hide Preview" : "Preview PDF"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+        {saveError ? <div className="text-xs text-red-600 mb-4">{saveError}</div> : null}
 
         {showPreview && invoiceItemsForPDF.length > 0 && (
           <div className="mb-8 border rounded-lg overflow-hidden h-[800px]">
@@ -295,6 +465,7 @@ export default function CreateInvoicePage() {
                 discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
                 discountType={discountType}
                 total={calculateTotal()}
+                companyName={storeName}
               />
             </PDFViewer>
           </div>
@@ -308,7 +479,8 @@ export default function CreateInvoicePage() {
               <div className="flex justify-center gap-2 font-semibold">
                 <span className={cn(items.length === 0 ? "text-gray-400" : "")}>Real Bill</span>
                 <Switch
-                  className="cursor-pointer"
+                  size="default"
+                  className="cursor-pointer border border-black data-[state=unchecked]:bg-transparent data-[state=checked]:bg-orange-500"
                   checked={isEstimate}
                   onCheckedChange={(checked: boolean) => {
                     // Only allow switching to Real Bill if there are items
@@ -343,7 +515,7 @@ export default function CreateInvoicePage() {
                       <CommandList>
                         <CommandEmpty>No client found.</CommandEmpty>
                         <CommandGroup>
-                          {sampleClients.map((client) => (
+                          {clients.map((client) => (
                             <CommandItem
                               key={client.id}
                               value={client.name}
@@ -371,10 +543,14 @@ export default function CreateInvoicePage() {
                     </Command>
                   </PopoverContent>
                 </Popover>
-                <Button size="icon" className="h-9 w-9">
+                <Link
+                  href="/clients"
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-orange-500 text-white hover:bg-orange-600"
+                >
                   <Plus className="h-4 w-4" />
-                </Button>
+                </Link>
               </div>
+              {clientsError ? <div className="text-xs text-red-600">{clientsError}</div> : null}
 
               {/* OR Custom Client */}
               <div className="flex items-center justify-center text-sm text-muted-foreground">
@@ -410,8 +586,27 @@ export default function CreateInvoicePage() {
               </div>
 
               <div className="flex gap-2">
-                <Input type="date" className="h-9 text-xs" />
-                <Input type="date" className="h-9 text-xs" />
+                <Input
+                  type="date"
+                  className="h-9 text-xs"
+                  value={issueDateValue}
+                  onChange={(e) => {
+                    setIssueDateValue(e.target.value)
+                    setInvoiceDate(
+                      new Date(e.target.value).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    )
+                  }}
+                />
+                <Input
+                  type="date"
+                  className="h-9 text-xs"
+                  value={dueDateValue}
+                  onChange={(e) => setDueDateValue(e.target.value)}
+                />
               </div>
             </section>
 
@@ -440,7 +635,7 @@ export default function CreateInvoicePage() {
                         <CommandList>
                           <CommandEmpty>No item found.</CommandEmpty>
                           <CommandGroup>
-                            {sampleProducts.map((product) => (
+                            {(products.length ? products : sampleProducts).map((product) => (
                               <CommandItem
                                 key={product.id}
                                 value={product.name}
@@ -467,6 +662,7 @@ export default function CreateInvoicePage() {
                     </PopoverContent>
                   </Popover>
                 </div>
+                {productsError ? <div className="col-span-1 sm:col-span-5 text-xs text-red-600">{productsError}</div> : null}
                 <Input
                   placeholder="Qty"
                   type="number"
@@ -557,9 +753,10 @@ export default function CreateInvoicePage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Switch
+                    size="default"
                     checked={applyTax}
                     onCheckedChange={setApplyTax}
-                    className="cursor-pointer"
+                    className="cursor-pointer border border-black data-[state=unchecked]:bg-transparent data-[state=checked]:bg-orange-500"
                   />
                   <span>Apply Tax</span>
                 </div>
@@ -580,9 +777,10 @@ export default function CreateInvoicePage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Switch
+                    size="default"
                     checked={applyDiscount}
                     onCheckedChange={setApplyDiscount}
-                    className="cursor-pointer"
+                    className="cursor-pointer border border-black data-[state=unchecked]:bg-transparent data-[state=checked]:bg-orange-500"
                   />
                   <span>Apply Discount</span>
                 </div>
@@ -645,6 +843,7 @@ export default function CreateInvoicePage() {
                 discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
                 discountType={discountType}
                 total={calculateTotal()}
+                companyName={storeName}
               />
             ) : (
               <div className="flex items-center justify-center h-full min-h-[400px] text-muted-foreground">
@@ -661,10 +860,15 @@ export default function CreateInvoicePage() {
           <DialogHeader>
             <DialogTitle>Item Discount</DialogTitle>
           </DialogHeader>
+          <DialogDescription>
+            Set up item discounts for your invoice.
+          </DialogDescription>
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
               <span className="font-medium">Enable Discount</span>
               <Switch
+                size="default"
+                className="cursor-pointer border border-black data-[state=unchecked]:bg-transparent data-[state=checked]:bg-orange-500"
                 checked={tempDiscountEnabled}
                 onCheckedChange={setTempDiscountEnabled}
               />

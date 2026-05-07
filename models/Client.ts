@@ -22,4 +22,4 @@ const clientSchema = new Schema<IClient>(
   { timestamps: true }
 );
 
-export const Client = mongoose.model<IClient>("Client", clientSchema);
+export const Client = mongoose.models.Client || mongoose.model<IClient>("Client", clientSchema);

@@ -1,94 +1,88 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Clock, FileText, Wallet } from "lucide-react"
 import Link from "next/link"
 
 type Status = "paid" | "pending" | "overdue"
 
-interface Invoice{
-  invoiceId: string
+interface Invoice {
+  id: string
+  invoiceNumber: string
   customerName: string
   amount: number
-  date: string
+  issueDate: string | null
   status: Status
 }
 
 export default function Home() {
+  const [summary, setSummary] = useState({
+    totalInvoices: 0,
+    totalAmount: 0,
+    paidAmount: 0,
+    outstanding: 0,
+    overdueCount: 0,
+  })
+  const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      setError(null)
+      try {
+        const res = await fetch("/api/report", { cache: "no-store" })
+        const data = await res.json().catch(() => null)
+        if (!res.ok) {
+          setError(typeof data?.error === "string" ? data.error : "Failed to load report")
+          return
+        }
+        setSummary(data?.summary ?? summary)
+        setRecentInvoices(Array.isArray(data?.recentInvoices) ? data.recentInvoices : [])
+      } catch {
+        setError("Failed to load report")
+      }
+    }
+
+    const t = setTimeout(() => {
+      void load()
+    }, 0)
+
+    return () => clearTimeout(t)
+  }, [])
+
   const mainCards = [
     {
       title: "Total Invoices",
-      value: "128",
+      value: String(summary.totalInvoices),
       icon: FileText,
       iconColor: "#E35912",
       iconBg: "#FDD296",
     },
     {
       title: "Total Amount",
-      value: "₹2,45,680",
+      value: `₹${summary.totalAmount.toLocaleString()}`,
       icon: Wallet,
       iconColor: "#D97706",
       iconBg: "#f6e39c",
     },
     {
       title: "Paid Amount",
-      value: "₹1,75,420",
+      value: `₹${summary.paidAmount.toLocaleString()}`,
       icon: CheckCircle,
       iconColor: "#16A34A",
       iconBg: "#DCFCE7",
     },
     {
       title: "Outstanding",
-      value: "₹70,260",
+      value: `₹${summary.outstanding.toLocaleString()}`,
       icon: Clock,
       iconColor: "#DC2626",
       iconBg: "#e99f9f",
     },
   ]
 
-  const recentInvoices : Invoice[] = [
-  {
-    invoiceId: "INV001",
-    customerName: "Bilal Ahmed",
-    amount: 12010,
-    date: "12-06-2025",
-    status: "paid",
-  },
-  {
-    invoiceId: "INV002",
-    customerName: "Ayesha Khan",
-    amount: 8450,
-    date: "14-06-2025",
-    status: "pending",
-  },
-  {
-    invoiceId: "INV003",
-    customerName: "Rahul Sharma",
-    amount: 15600,
-    date: "16-06-2025",
-    status: "paid",
-  },
-  {
-    invoiceId: "INV004",
-    customerName: "Zara Ali",
-    amount: 7200,
-    date: "18-06-2025",
-    status: "overdue",
-  },
-  {
-    invoiceId: "INV005",
-    customerName: "Arjun Mehta",
-    amount: 13400,
-    date: "20-06-2025",
-    status: "pending",
-  },
-  {
-    invoiceId: "INV006",
-    customerName: "Fatima Noor",
-    amount: 9800,
-    date: "22-06-2025",
-    status: "paid",
-  },
-]
-const statusStyles = {
+  const statusStyles: Record<Status, string> = {
   paid: "bg-green-100 text-green-700",
   pending: "bg-yellow-100 text-yellow-700",
   overdue: "bg-red-100 text-red-700",
@@ -142,18 +136,19 @@ const statusStyles = {
       <section className="w-[90%] p-4 bg-white shadow-md shadow-[#816300] rounded-xl text-xs mb-20">
         <div className="flex justify-between">
           <h2 className="font-bold">Recent Invoices</h2>
-          <Link href="/" className="text-primary">View All</Link>
+          <Link href="/invoices" className="text-primary">View All</Link>
         </div>
 
+        {error ? <div className="text-xs text-red-600 mt-2">{error}</div> : null}
         {
-          recentInvoices.map((item, index) => (
-            <div key={index} className="my-3 flex flex-col gap-1">
+          recentInvoices.map((item) => (
+            <div key={item.id} className="my-3 flex flex-col gap-1">
               <div className="flex justify-between font-semibold">
                 <div>
-                  {item.invoiceId}
+                  {item.invoiceNumber}
                 </div>
                 <div>
-                  ${item.amount}
+                  ₹{item.amount.toLocaleString()}
                 </div>
               </div>
               <div className="flex justify-between text-muted-foreground items-center">
@@ -162,7 +157,7 @@ const statusStyles = {
                   {item.customerName}
                   </div>
                   <div>
-                    {item.date}
+                    {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
                   </div>
                 </div>
                 <div>

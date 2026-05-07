@@ -24,7 +24,7 @@ const menuItems = [
   { title: "Clients", link: "/clients", icon: Users },
   { title: "Products / Services", link: "/products", icon: Package },
   { title: "Payments", link: "/", icon: CreditCard },
-  { title: "Reports", link: "/", icon: BarChart3 },
+  { title: "Reports", link: "/reports", icon: BarChart3 },
   { title: "Templates", link: "/", icon: FileText },
 ]
 
