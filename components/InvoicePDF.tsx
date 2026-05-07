@@ -32,10 +32,14 @@ interface InvoicePDFProps {
 }
 
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount)
+  const value = Number.isFinite(amount) ? amount : 0
+  return `₹${value.toFixed(2)}`
+}
+
+const toPdfSafeText = (value: unknown) => {
+  const s = typeof value === "string" ? value : ""
+  const cleaned = s.replace(/[^\x20-\x7E]/g, "").trim()
+  return cleaned || "-"
 }
 
 const styles = StyleSheet.create({
@@ -55,6 +59,13 @@ const styles = StyleSheet.create({
     width: 80,
     height: 48,
     marginBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  companyLogoText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#ea580c",
   },
   companyName: {
     fontSize: 18,
@@ -216,6 +227,12 @@ export default function InvoicePDF({
   total,
   companyName = "Pocket Store",
 }: InvoicePDFProps) {
+  const safeCompanyName = toPdfSafeText(companyName)
+  const safeInvoiceNumber = toPdfSafeText(invoiceNumber)
+  const safeDate = toPdfSafeText(date)
+  const safeCustomerName = toPdfSafeText(customer?.name)
+  const safeCustomerContact = toPdfSafeText(customer?.contact)
+  const logoLetter = safeCompanyName.charAt(0).toUpperCase() || "P"
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -227,21 +244,23 @@ export default function InvoicePDF({
                 styles.companyLogo,
                 { backgroundColor: "#ffedd5", borderRadius: 8 },
               ]}
-            />
-            <Text style={styles.companyName}>{companyName}</Text>
+            >
+              <Text style={styles.companyLogoText}>{logoLetter}</Text>
+            </View>
+            <Text style={styles.companyName}>{safeCompanyName}</Text>
           </View>
           <View style={styles.invoiceInfo}>
             <Text style={styles.invoiceTitle}>INVOICE</Text>
-            <Text style={styles.invoiceNumber}>#{invoiceNumber}</Text>
-            <Text style={styles.invoiceDate}>{date}</Text>
+            <Text style={styles.invoiceNumber}>#{safeInvoiceNumber}</Text>
+            <Text style={styles.invoiceDate}>{safeDate}</Text>
           </View>
         </View>
 
         {/* Customer Info */}
         <View style={styles.customerInfo}>
           <Text style={styles.customerLabel}>Bill To:</Text>
-          <Text style={styles.customerName}>{customer.name}</Text>
-          <Text style={styles.customerEmail}>{customer.contact}</Text>
+          <Text style={styles.customerName}>{safeCustomerName}</Text>
+          <Text style={styles.customerEmail}>{safeCustomerContact}</Text>
         </View>
 
         {/* Items Table */}
@@ -254,7 +273,7 @@ export default function InvoicePDF({
           </View>
           {items.map((item: InvoiceItem, index: number) => (
             <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableItem}>{item.name}</Text>
+              <Text style={styles.tableItem}>{toPdfSafeText(item.name)}</Text>
               <Text style={styles.tableQty}>{item.quantity}</Text>
               <Text style={styles.tablePrice}>{formatCurrency(item.price)}</Text>
               <Text style={styles.tableTotal}>

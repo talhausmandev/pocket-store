@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type SubmitEvent } from "react"
 import { useRouter } from "next/navigation"
 import { Save } from "lucide-react"
 import Link from "next/link"
@@ -14,15 +14,55 @@ export default function CreateProductPage() {
         name: "",
         description: "",
         price: "",
-        quantity: "",
-        tax: false,
-        taxRate: "",
+        stock: "",
     })
+    const [error, setError] = useState<string | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
-        console.log("Product data:", formData)
-        router.push("/products")
+        setError(null)
+
+        const name = formData.name.trim()
+        const description = formData.description.trim()
+        const price = Number(formData.price)
+        const stock = Number(formData.stock)
+
+        if (!name) {
+            setError("Product name is required")
+            return
+        }
+        if (!Number.isFinite(price) || price < 0) {
+            setError("Valid price is required")
+            return
+        }
+
+        setIsSubmitting(true)
+        try {
+            const res = await fetch("/api/product", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name,
+                    description,
+                    price,
+                    stock: Number.isFinite(stock) && stock >= 0 ? stock : 0,
+                }),
+            })
+
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to create product")
+                return
+            }
+
+            router.push("/products")
+            router.refresh()
+        } catch {
+            setError("Failed to create product")
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -52,6 +92,7 @@ export default function CreateProductPage() {
                             onChange={handleChange}
                             placeholder="Enter product or service name"
                             required
+                            disabled={isSubmitting}
                         />
                     </div>
 
@@ -64,6 +105,7 @@ export default function CreateProductPage() {
                             placeholder="Enter description"
                             rows={4}
                             className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+                            disabled={isSubmitting}
                         />
                     </div>
 
@@ -78,26 +120,34 @@ export default function CreateProductPage() {
                                 onChange={handleChange}
                                 placeholder="0.00"
                                 required
+                                disabled={isSubmitting}
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Quantity</label>
+                            <label className="text-sm font-medium">Stock</label>
                             <Input
-                                name="quantity"
+                                name="stock"
                                 type="number"
-                                value={formData.quantity}
+                                value={formData.stock}
                                 onChange={handleChange}
                                 placeholder="0"
                                 required
+                                disabled={isSubmitting}
                             />
                         </div>
                     </div>
 
+                    {error ? <div className="text-xs text-red-600">{error}</div> : null}
+
                     <div className="flex gap-3 pt-4">
-                        <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+                        <Button
+                            type="submit"
+                            className="bg-orange-500 hover:bg-orange-600"
+                            disabled={isSubmitting}
+                        >
                             <Save className="h-4 w-4 mr-2" />
-                            Save Product
+                            {isSubmitting ? "Saving..." : "Save Product"}
                         </Button>
                         <Link href="/products">
                             <Button type="button" variant="outline">

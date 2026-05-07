@@ -9,15 +9,9 @@ export default async function CreateStorePage() {
   const { userId } = await auth.protect()
 
   await connectDB()
-  const existingStore =
-    (await Store.findOne({ clerkUserId: userId })) ?? (await Store.findOne({ UserId: userId }))
+  const existingStore = await Store.findOne({ clerkUserId: userId })
 
   if (existingStore) {
-    if (!existingStore.clerkUserId || existingStore.UserId !== userId) {
-      existingStore.clerkUserId = userId
-      existingStore.UserId = existingStore.UserId ?? userId
-      await existingStore.save()
-    }
     redirect("/")
   }
 

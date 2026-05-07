@@ -39,11 +39,6 @@ export async function POST(request: Request) {
   await connectDB()
   const existing = await findStoreForUser(userId)
   if (existing) {
-    if (!existing.clerkUserId) {
-      existing.clerkUserId = userId
-      await existing.save()
-    }
-
     return Response.json({ store: existing })
   }
 

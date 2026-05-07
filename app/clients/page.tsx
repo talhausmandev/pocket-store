@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, type SubmitEvent } from "react"
 import {
     Dialog,
     DialogContent,
@@ -14,32 +14,87 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 
 interface Client {
+    id: string
+    name: string
+    contact?: string
+}
+
+type NewClient = {
     name: string
     contact: string
 }
 
 export default function ClientsPage() {
-    const [clients, setClients] = useState<Client[]>([
-        {
-            name: "Tech Solutions Pvt. Ltd.",
-            contact: "contact@techsolutions.com",
-        },
-        {
-            name: "Creative Studio",
-            contact: "+91 91234 56789",
-        },
-    ])
+    const [clients, setClients] = useState<Client[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    const [newClient, setNewClient] = useState<Client>({
+    const [newClient, setNewClient] = useState<NewClient>({
         name: "",
         contact: "",
     })
 
-    const addClient = () => {
-        if (!newClient.name) return
+    const loadClients = async () => {
+        setError(null)
+        setIsLoading(true)
+        try {
+            const res = await fetch("/api/client", { cache: "no-store" })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to load clients")
+                setClients([])
+                return
+            }
+            setClients(Array.isArray(data?.clients) ? data.clients : [])
+        } catch {
+            setError("Failed to load clients")
+            setClients([])
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
-        setClients((prev) => [...prev, newClient])
-        setNewClient({ name: "", contact: "" })
+    useEffect(() => {
+        const t = setTimeout(() => {
+            void loadClients()
+        }, 0)
+
+        return () => clearTimeout(t)
+    }, [])
+
+    const addClient = async (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        setError(null)
+
+        const trimmedName = newClient.name.trim()
+        if (!trimmedName) return
+
+        try {
+            const res = await fetch("/api/client", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: trimmedName,
+                    contact: (newClient.contact ?? "").trim(),
+                }),
+            })
+
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to create client")
+                return
+            }
+
+            if (data?.client) {
+                setClients((prev) => [data.client, ...prev])
+            } else {
+                void loadClients()
+            }
+
+            setNewClient({ name: "", contact: "" })
+        } catch {
+            setError("Failed to create client")
+        }
     }
 
     return (
@@ -67,7 +122,7 @@ export default function ClientsPage() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-3">
+                    <form className="space-y-3" onSubmit={addClient}>
                         <Input
                             placeholder="Client Name"
                             value={newClient.name}
@@ -85,12 +140,12 @@ export default function ClientsPage() {
                         />
 
                         <Button
+                            type="submit"
                             className="w-full bg-orange-500 hover:bg-orange-600"
-                            onClick={addClient}
                         >
                             Save Client
                         </Button>
-                    </div>
+                    </form>
                 </DialogContent>
             </Dialog>
 
@@ -104,9 +159,14 @@ export default function ClientsPage() {
 
             {/* CLIENT LIST */}
             <section className="w-[90%] mt-4 space-y-3 mb-24">
-                {clients.map((client, index) => (
+                {error ? <div className="text-xs text-red-600">{error}</div> : null}
+                {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
+                {!isLoading && clients.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">No clients yet.</div>
+                ) : null}
+                {clients.map((client) => (
                     <div
-                        key={index}
+                        key={client.id}
                         className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
                     >
                         {/* LEFT */}
@@ -120,7 +180,7 @@ export default function ClientsPage() {
                                     {client.name}
                                 </p>
                                 <p className="text-muted-foreground truncate text-[10px]">
-                                    {client.contact}
+                                    {client.contact || "-"}
                                 </p>
                             </div>
                         </div>
