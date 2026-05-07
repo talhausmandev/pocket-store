@@ -126,7 +126,7 @@ export default function InvoicesPage() {
                             </div>
 
                             <div className="font-semibold">
-                                ₹{item.amount.toLocaleString()}
+                                Rs {item.amount.toLocaleString()}
                             </div>
                         </div>
 

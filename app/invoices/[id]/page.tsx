@@ -45,6 +45,25 @@ const statusStyles: Record<Status, string> = {
   overdue: "bg-red-100 text-red-700",
 }
 
+const getDefaultMakeRealDueDate = (inv: Invoice | null) => {
+  if (!inv || !inv.isEstimate) return ""
+  if (inv.dueDate) {
+    const d = new Date(inv.dueDate)
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+  }
+
+  const now = new Date()
+  const todayLocalIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10)
+  const due = new Date(todayLocalIso)
+  due.setDate(due.getDate() + 7)
+  const dueLocalIso = new Date(due.getTime() - due.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10)
+  return dueLocalIso
+}
+
 export default function InvoiceDetailPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
@@ -56,6 +75,7 @@ export default function InvoiceDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [isPrinting, setIsPrinting] = useState(false)
+  const [makeRealDueDate, setMakeRealDueDate] = useState("")
 
   const loadInvoice = async (id: string) => {
     setError(null)
@@ -104,10 +124,13 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     if (!invoiceId) return
     const t = setTimeout(() => {
+      setMakeRealDueDate("")
       void loadInvoice(invoiceId)
     }, 0)
     return () => clearTimeout(t)
   }, [invoiceId])
+
+  const effectiveMakeRealDueDate = makeRealDueDate || getDefaultMakeRealDueDate(invoice)
 
   const pdfCustomer = invoice
     ? { name: invoice.clientName, contact: invoice.clientContact || "" }
@@ -157,6 +180,35 @@ export default function InvoiceDetailPage() {
       setError("Failed to generate PDF")
     } finally {
       setIsPrinting(false)
+    }
+  }
+
+  const makeRealBill = async () => {
+    if (!invoice) return
+    setIsUpdating(true)
+    setError(null)
+    try {
+      const dueDateToSend = makeRealDueDate || getDefaultMakeRealDueDate(invoice)
+      if (!dueDateToSend) {
+        setError("Due date is required")
+        return
+      }
+      const res = await fetch(`/api/invoice/${invoice.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ makeReal: true, dueDate: dueDateToSend }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(typeof data?.error === "string" ? data.error : "Failed to convert invoice")
+        return
+      }
+      setInvoice((prev) => (prev ? { ...prev, ...data.invoice } : prev))
+      router.refresh()
+    } catch {
+      setError("Failed to convert invoice")
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -266,10 +318,34 @@ export default function InvoiceDetailPage() {
                 <div className="text-[10px] text-muted-foreground">Bill Type</div>
                 <div className="font-medium">{invoice.isEstimate ? "Estimate" : "Real"}</div>
                 <div className="text-[10px] text-muted-foreground">
-                  Paid: ₹{Number(invoice.paidAmount || 0).toLocaleString()}
+                  Paid: Rs {Number(invoice.paidAmount || 0).toLocaleString()}
                 </div>
               </div>
             </div>
+
+            {invoice.isEstimate ? (
+              <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                <div className="font-medium">Convert to Real Bill</div>
+                <div className="text-[10px] text-muted-foreground">
+                  This will reduce product stock based on invoice items.
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                  <input
+                    type="date"
+                    className="h-8 px-2 rounded-md border bg-white text-xs"
+                    value={effectiveMakeRealDueDate}
+                    onChange={(e) => setMakeRealDueDate(e.target.value)}
+                  />
+                  <Button
+                    className="h-8 bg-orange-500 hover:bg-orange-600"
+                    disabled={isUpdating || !effectiveMakeRealDueDate}
+                    onClick={makeRealBill}
+                  >
+                    {isUpdating ? "Converting..." : "Make Real"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="flex flex-wrap gap-2">
               <Button
@@ -310,10 +386,10 @@ export default function InvoiceDetailPage() {
                     <div className="min-w-0">
                       <div className="font-medium truncate">{it.name}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        Qty {it.quantity} × ₹{it.price.toLocaleString()}
+                        Qty {it.quantity} × Rs {it.price.toLocaleString()}
                       </div>
                     </div>
-                    <div className="font-semibold">₹{Number(it.total).toLocaleString()}</div>
+                    <div className="font-semibold">Rs {Number(it.total).toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -322,23 +398,23 @@ export default function InvoiceDetailPage() {
             <div className="space-y-1">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>₹{Number(invoice.subtotalAmount).toLocaleString()}</span>
+                <span>Rs {Number(invoice.subtotalAmount).toLocaleString()}</span>
               </div>
               {invoice.taxAmount > 0 ? (
                 <div className="flex justify-between">
                   <span>Tax ({invoice.taxRate}%)</span>
-                  <span>₹{Number(invoice.taxAmount).toLocaleString()}</span>
+                  <span>Rs {Number(invoice.taxAmount).toLocaleString()}</span>
                 </div>
               ) : null}
               {invoice.discountAmount > 0 ? (
                 <div className="flex justify-between">
                   <span>Discount</span>
-                  <span className="text-red-600">-₹{Number(invoice.discountAmount).toLocaleString()}</span>
+                  <span className="text-red-600">-Rs {Number(invoice.discountAmount).toLocaleString()}</span>
                 </div>
               ) : null}
               <div className="flex justify-between font-semibold pt-2 border-t">
                 <span>Total</span>
-                <span>₹{Number(invoice.totalAmount).toLocaleString()}</span>
+                <span>Rs {Number(invoice.totalAmount).toLocaleString()}</span>
               </div>
               <div className="text-[10px] text-muted-foreground">
                 Stored status: {invoice.storedStatus}

@@ -33,7 +33,7 @@ interface InvoicePDFProps {
 
 const formatCurrency = (amount: number) => {
   const value = Number.isFinite(amount) ? amount : 0
-  return `₹${value.toFixed(2)}`
+  return `Rs ${value.toFixed(2)}`
 }
 
 const toPdfSafeText = (value: unknown) => {

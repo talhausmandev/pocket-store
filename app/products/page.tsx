@@ -96,7 +96,7 @@ export default function ProductsPage() {
                             {/* RIGHT */}
                             <div className="text-right flex-shrink-0">
                                 <p className="font-semibold text-orange-600">
-                                    ${product.price.toFixed(2)}
+                                    Rs {product.price.toFixed(2)}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
                                     Stock: {product.stock}

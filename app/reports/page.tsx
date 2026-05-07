@@ -89,15 +89,15 @@ export default function ReportsPage() {
         </div>
         <div className="p-3 rounded-xl border bg-white shadow-sm">
           <div className="text-muted-foreground text-[10px]">Total Amount</div>
-          <div className="text-sm font-semibold">₹{summary.totalAmount.toLocaleString()}</div>
+          <div className="text-sm font-semibold">Rs {summary.totalAmount.toLocaleString()}</div>
         </div>
         <div className="p-3 rounded-xl border bg-white shadow-sm">
           <div className="text-muted-foreground text-[10px]">Paid</div>
-          <div className="text-sm font-semibold">₹{summary.paidAmount.toLocaleString()}</div>
+          <div className="text-sm font-semibold">Rs {summary.paidAmount.toLocaleString()}</div>
         </div>
         <div className="p-3 rounded-xl border bg-white shadow-sm">
           <div className="text-muted-foreground text-[10px]">Outstanding</div>
-          <div className="text-sm font-semibold">₹{summary.outstanding.toLocaleString()}</div>
+          <div className="text-sm font-semibold">Rs {summary.outstanding.toLocaleString()}</div>
         </div>
       </section>
 
@@ -115,7 +115,7 @@ export default function ReportsPage() {
           <div key={inv.id} className="p-3 rounded-xl border bg-white shadow-sm">
             <div className="flex justify-between items-center">
               <div className="font-semibold">{inv.invoiceNumber}</div>
-              <div className="font-semibold">₹{inv.amount.toLocaleString()}</div>
+              <div className="font-semibold">Rs {inv.amount.toLocaleString()}</div>
             </div>
             <div className="flex justify-between items-center mt-1 text-muted-foreground">
               <div className="min-w-0">

@@ -61,21 +61,21 @@ export default function Home() {
     },
     {
       title: "Total Amount",
-      value: `₹${summary.totalAmount.toLocaleString()}`,
+      value: `Rs ${summary.totalAmount.toLocaleString()}`,
       icon: Wallet,
       iconColor: "#D97706",
       iconBg: "#f6e39c",
     },
     {
       title: "Paid Amount",
-      value: `₹${summary.paidAmount.toLocaleString()}`,
+      value: `Rs ${summary.paidAmount.toLocaleString()}`,
       icon: CheckCircle,
       iconColor: "#16A34A",
       iconBg: "#DCFCE7",
     },
     {
       title: "Outstanding",
-      value: `₹${summary.outstanding.toLocaleString()}`,
+      value: `Rs ${summary.outstanding.toLocaleString()}`,
       icon: Clock,
       iconColor: "#DC2626",
       iconBg: "#e99f9f",
@@ -148,7 +148,7 @@ export default function Home() {
                   {item.invoiceNumber}
                 </div>
                 <div>
-                  ₹{item.amount.toLocaleString()}
+                  Rs {item.amount.toLocaleString()}
                 </div>
               </div>
               <div className="flex justify-between text-muted-foreground items-center">

@@ -652,7 +652,7 @@ export default function CreateInvoicePage() {
                                 />
                                 {product.name}
                                 <span className="ml-auto text-muted-foreground">
-                                  ${product.price.toFixed(2)}
+                                  Rs {product.price.toFixed(2)}
                                 </span>
                               </CommandItem>
                             ))}
@@ -698,18 +698,18 @@ export default function CreateInvoicePage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{item.name}</p>
                           <p className="text-muted-foreground text-[10px]">
-                            {item.quantity} x ${item.rate.toFixed(2)}
+                            {item.quantity} x Rs {item.rate.toFixed(2)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <div className="text-right">
                             {item.discountEnabled && (
                               <p className="text-red-500 text-[10px]">
-                                -${calculateItemDiscountAmount(item).toFixed(2)}
+                                -Rs {calculateItemDiscountAmount(item).toFixed(2)}
                               </p>
                             )}
                             <span className="font-semibold">
-                              ${calculateItemTotal(item).toFixed(2)}
+                              Rs {calculateItemTotal(item).toFixed(2)}
                             </span>
                           </div>
                           <Button
@@ -740,13 +740,13 @@ export default function CreateInvoicePage() {
             <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${calculateSubtotal().toFixed(2)}</span>
+                <span>Rs {calculateSubtotal().toFixed(2)}</span>
               </div>
 
               {calculateTotalItemDiscounts() > 0 && (
                 <div className="flex justify-between">
                   <span>Item Discounts</span>
-                  <span className="text-red-600">-${calculateTotalItemDiscounts().toFixed(2)}</span>
+                  <span className="text-red-600">-Rs {calculateTotalItemDiscounts().toFixed(2)}</span>
                 </div>
               )}
 
@@ -769,7 +769,7 @@ export default function CreateInvoicePage() {
                       onChange={(e) => setTaxRate(e.target.value)}
                       className="w-20 h-7 text-xs"
                     />
-                    <span>${calculateTax().toFixed(2)}</span>
+                    <span>Rs {calculateTax().toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -805,17 +805,17 @@ export default function CreateInvoicePage() {
                         )}
                       >
                         <DollarSign className="h-3 w-3" />
-                        $
+                        Rs
                       </button>
                     </div>
                     <Input
                       type="number"
-                      placeholder={discountType === "percent" ? "0%" : "$0"}
+                      placeholder={discountType === "percent" ? "0%" : "Rs 0"}
                       value={discountValue}
                       onChange={(e) => setDiscountValue(e.target.value)}
                       className="w-20 h-7 text-xs"
                     />
-                    <span>-${calculateInvoiceDiscount().toFixed(2)}</span>
+                    <span>-Rs {calculateInvoiceDiscount().toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -823,7 +823,7 @@ export default function CreateInvoicePage() {
               <div className="flex justify-between font-semibold text-sm pt-2 border-t">
                 <span>Total Amount</span>
                 <span className="text-orange-600">
-                  ${calculateTotal().toFixed(2)}
+                  Rs {calculateTotal().toFixed(2)}
                 </span>
               </div>
             </section>
@@ -897,18 +897,18 @@ export default function CreateInvoicePage() {
                       )}
                     >
                       <DollarSign className="h-3 w-3" />
-                      $
+                      Rs
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <span className="font-medium">
-                    Discount Value ({tempDiscountType === "percent" ? "%" : "$"})
+                    Discount Value ({tempDiscountType === "percent" ? "%" : "Rs"})
                   </span>
                   <Input
                     type="number"
-                    placeholder={tempDiscountType === "percent" ? "0%" : "$0"}
+                    placeholder={tempDiscountType === "percent" ? "0%" : "Rs 0"}
                     value={tempDiscountValue}
                     onChange={(e) => setTempDiscountValue(e.target.value)}
                   />

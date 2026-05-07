@@ -27,10 +27,8 @@ interface InvoiceViewProps {
 }
 
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount)
+  const value = Number.isFinite(amount) ? amount : 0
+  return `Rs ${value.toFixed(2)}`
 }
 
 export default function InvoiceView({
