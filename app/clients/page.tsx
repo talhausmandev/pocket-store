@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Edit2, Plus } from "lucide-react"
 
 interface Client {
     id: string
@@ -28,11 +28,18 @@ export default function ClientsPage() {
     const [clients, setClients] = useState<Client[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [search, setSearch] = useState("")
 
     const [newClient, setNewClient] = useState<NewClient>({
         name: "",
         contact: "",
     })
+
+    const [editOpen, setEditOpen] = useState(false)
+    const [editClientId, setEditClientId] = useState("")
+    const [editName, setEditName] = useState("")
+    const [editContact, setEditContact] = useState("")
+    const [isEditing, setIsEditing] = useState(false)
 
     const loadClients = async () => {
         setError(null)
@@ -97,6 +104,67 @@ export default function ClientsPage() {
         }
     }
 
+    const getFilteredClients = (list: Client[], q: string) => {
+        const query = q.trim().toLowerCase()
+        if (!query) return list
+        return list.filter((c) => {
+            const name = (c.name ?? "").toLowerCase()
+            const contact = (c.contact ?? "").toLowerCase()
+            return name.includes(query) || contact.includes(query)
+        })
+    }
+
+    const filteredClients = getFilteredClients(clients, search)
+
+    const openEditClient = (client: Client) => {
+        setError(null)
+        setEditClientId(client.id)
+        setEditName(client.name ?? "")
+        setEditContact(client.contact ?? "")
+        setEditOpen(true)
+    }
+
+    const saveClientEdit = async (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        setError(null)
+        const id = editClientId
+        const name = editName.trim()
+        const contact = editContact.trim()
+
+        if (!id) return
+        if (!name) {
+            setError("Client name is required")
+            return
+        }
+
+        setIsEditing(true)
+        try {
+            const res = await fetch("/api/client", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, name, contact }),
+            })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to update client")
+                return
+            }
+
+            const updated: Client | null = data?.client ?? null
+            if (updated) {
+                setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+            } else {
+                void loadClients()
+            }
+
+            setEditOpen(false)
+        } catch {
+            setError("Failed to update client")
+        } finally {
+            setIsEditing(false)
+        }
+    }
+
     return (
         <main className="w-full text-xs">
 
@@ -154,6 +222,8 @@ export default function ClientsPage() {
                 <Input
                     placeholder="Search clients..."
                     className="h-9 text-xs"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                 />
             </section>
 
@@ -161,10 +231,12 @@ export default function ClientsPage() {
             <section className="w-[90%] mt-4 space-y-3 mb-24">
                 {error ? <div className="text-xs text-red-600">{error}</div> : null}
                 {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
-                {!isLoading && clients.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">No clients yet.</div>
+                {!isLoading && filteredClients.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                        {clients.length === 0 ? "No clients yet." : "No matching clients."}
+                    </div>
                 ) : null}
-                {clients.map((client) => (
+                {filteredClients.map((client) => (
                     <div
                         key={client.id}
                         className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
@@ -185,10 +257,47 @@ export default function ClientsPage() {
                             </div>
                         </div>
 
-                        
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openEditClient(client)}
+                        >
+                            <Edit2 className="h-4 w-4" />
+                        </Button>
                     </div>
                 ))}
             </section>
+
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="text-xs">
+                    <DialogHeader>
+                        <DialogTitle>Edit Client</DialogTitle>
+                        <DialogDescription>
+                            Update client name and contact details.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form className="space-y-3" onSubmit={saveClientEdit}>
+                        <Input
+                            placeholder="Client Name"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                        />
+                        <Input
+                            placeholder="Contact"
+                            value={editContact}
+                            onChange={(e) => setEditContact(e.target.value)}
+                        />
+                        <Button
+                            type="submit"
+                            className="w-full bg-orange-500 hover:bg-orange-600"
+                            disabled={isEditing}
+                        >
+                            {isEditing ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
         </main>
     )

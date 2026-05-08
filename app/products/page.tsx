@@ -1,8 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Edit2, Plus } from "lucide-react"
 import Link from "next/link"
 
 interface Product {
@@ -17,6 +25,15 @@ export default function ProductsPage() {
     const [products, setProducts] = useState<Product[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [search, setSearch] = useState("")
+
+    const [editOpen, setEditOpen] = useState(false)
+    const [editProductId, setEditProductId] = useState("")
+    const [editName, setEditName] = useState("")
+    const [editDescription, setEditDescription] = useState("")
+    const [editPrice, setEditPrice] = useState("")
+    const [editStock, setEditStock] = useState("")
+    const [isEditing, setIsEditing] = useState(false)
 
     useEffect(() => {
         const loadProducts = async () => {
@@ -45,6 +62,81 @@ export default function ProductsPage() {
 
         return () => clearTimeout(t)
     }, [])
+
+    const getFilteredProducts = (list: Product[], q: string) => {
+        const query = q.trim().toLowerCase()
+        if (!query) return list
+        return list.filter((p) => {
+            const name = (p.name ?? "").toLowerCase()
+            const desc = (p.description ?? "").toLowerCase()
+            return name.includes(query) || desc.includes(query)
+        })
+    }
+
+    const filteredProducts = getFilteredProducts(products, search)
+
+    const openEditProduct = (p: Product) => {
+        setError(null)
+        setEditProductId(p.id)
+        setEditName(p.name ?? "")
+        setEditDescription(p.description ?? "")
+        setEditPrice(String(Number.isFinite(p.price) ? p.price : 0))
+        setEditStock(String(Number.isFinite(p.stock) ? p.stock : 0))
+        setEditOpen(true)
+    }
+
+    const saveProductEdit = async () => {
+        setError(null)
+        const id = editProductId
+        const name = editName.trim()
+        const description = editDescription.trim()
+        const price = Number(editPrice)
+        const stock = Number(editStock)
+
+        if (!id) return
+        if (!name) {
+            setError("Product name is required")
+            return
+        }
+        if (!Number.isFinite(price) || price < 0) {
+            setError("Valid price is required")
+            return
+        }
+        if (!Number.isFinite(stock) || stock < 0) {
+            setError("Valid stock is required")
+            return
+        }
+
+        setIsEditing(true)
+        try {
+            const res = await fetch("/api/product", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, name, description, price, stock }),
+            })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to update product")
+                return
+            }
+
+            const updated: Product | null = data?.product ?? null
+            if (updated) {
+                setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+            } else {
+                const refresh = await fetch("/api/product", { cache: "no-store" })
+                const refreshData = await refresh.json().catch(() => null)
+                setProducts(Array.isArray(refreshData?.products) ? refreshData.products : [])
+            }
+
+            setEditOpen(false)
+        } catch {
+            setError("Failed to update product")
+        } finally {
+            setIsEditing(false)
+        }
+    }
+
     return (
         <main className="w-[90%]">
             <div className="w-full max-w-7xl mx-auto px-4 my-4">
@@ -62,6 +154,8 @@ export default function ProductsPage() {
                     <Input
                         placeholder="Search products..."
                         className="h-9 text-xs"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                     />
                 </section>
 
@@ -69,10 +163,12 @@ export default function ProductsPage() {
                 <section className="w-full mt-4 space-y-3 mb-24">
                     {error ? <div className="text-xs text-red-600">{error}</div> : null}
                     {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
-                    {!isLoading && products.length === 0 ? (
-                        <div className="text-xs text-muted-foreground">No products yet.</div>
+                    {!isLoading && filteredProducts.length === 0 ? (
+                        <div className="text-xs text-muted-foreground">
+                            {products.length === 0 ? "No products yet." : "No matching products."}
+                        </div>
                     ) : null}
-                    {products.map((product) => (
+                    {filteredProducts.map((product) => (
                         <div
                             key={product.id}
                             className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
@@ -94,18 +190,70 @@ export default function ProductsPage() {
                             </div>
 
                             {/* RIGHT */}
-                            <div className="text-right flex-shrink-0">
-                                <p className="font-semibold text-orange-600">
-                                    Rs {product.price.toFixed(2)}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">
-                                    Stock: {product.stock}
-                                </p>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <div className="text-right">
+                                    <p className="font-semibold text-orange-600">
+                                        Rs {product.price.toFixed(2)}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Stock: {product.stock}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEditProduct(product)}
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
                     ))}
                 </section>
             </div>
+
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="text-xs">
+                    <DialogHeader>
+                        <DialogTitle>Edit Product</DialogTitle>
+                        <DialogDescription>
+                            Update product details.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <Input
+                            placeholder="Product Name"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                        />
+                        <Input
+                            placeholder="Description"
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                        />
+                        <Input
+                            placeholder="Price"
+                            type="number"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                        />
+                        <Input
+                            placeholder="Stock"
+                            type="number"
+                            value={editStock}
+                            onChange={(e) => setEditStock(e.target.value)}
+                        />
+                        <Button
+                            className="w-full bg-orange-500 hover:bg-orange-600"
+                            disabled={isEditing}
+                            onClick={saveProductEdit}
+                        >
+                            {isEditing ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </main>
     )
 }
