@@ -53,14 +53,15 @@ export default function ReportsPage() {
         }
         setSummary(reportData?.summary ?? summary)
 
-        const overdueRes = await fetch("/api/invoice?status=overdue&limit=50", { cache: "no-store" })
-        const overdueData = await overdueRes.json().catch(() => null)
-        if (!overdueRes.ok) {
-          setError(typeof overdueData?.error === "string" ? overdueData.error : "Failed to load overdue invoices")
+        const invoicesRes = await fetch("/api/invoice", { cache: "no-store" })
+        const invoicesData = await invoicesRes.json().catch(() => null)
+        if (!invoicesRes.ok) {
+          setError(typeof invoicesData?.error === "string" ? invoicesData.error : "Failed to load invoices")
           setOverdue([])
           return
         }
-        setOverdue(Array.isArray(overdueData?.invoices) ? overdueData.invoices : [])
+        const allInvoices: InvoiceRow[] = Array.isArray(invoicesData?.invoices) ? invoicesData.invoices : []
+        setOverdue(allInvoices.filter((inv) => inv.status === "overdue").slice(0, 50))
       } catch {
         setError("Failed to load report")
       }
@@ -71,7 +72,7 @@ export default function ReportsPage() {
     }, 0)
 
     return () => clearTimeout(t)
-  }, [])
+  }, [summary])
 
   return (
     <main className="w-full text-xs">
