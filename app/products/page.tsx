@@ -5,12 +5,13 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Edit2, Plus } from "lucide-react"
+import { Edit2, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 
 interface Product {
@@ -34,6 +35,9 @@ export default function ProductsPage() {
     const [editPrice, setEditPrice] = useState("")
     const [editStock, setEditStock] = useState("")
     const [isEditing, setIsEditing] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [deleteOpen, setDeleteOpen] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
     useEffect(() => {
         const loadProducts = async () => {
@@ -137,6 +141,40 @@ export default function ProductsPage() {
         }
     }
 
+    const requestDeleteProduct = (product: Product) => {
+        setError(null)
+        if (!product?.id) return
+        setDeleteTarget(product)
+        setDeleteOpen(true)
+    }
+
+    const deleteProduct = async () => {
+        setError(null)
+        if (!deleteTarget?.id) return
+        const productId = deleteTarget.id
+
+        setDeletingId(productId)
+        try {
+            const res = await fetch("/api/product", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: productId }),
+            })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to delete product")
+                return
+            }
+            setProducts((prev) => prev.filter((p) => p.id !== productId))
+            setDeleteOpen(false)
+            setDeleteTarget(null)
+        } catch {
+            setError("Failed to delete product")
+        } finally {
+            setDeletingId(null)
+        }
+    }
+
     return (
         <main className="w-[90%]">
             <div className="w-full max-w-7xl mx-auto px-4 my-4">
@@ -204,8 +242,18 @@ export default function ProductsPage() {
                                     size="icon"
                                     className="h-8 w-8"
                                     onClick={() => openEditProduct(product)}
+                                    disabled={deletingId === product.id}
                                 >
                                     <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-600 hover:text-red-700"
+                                    onClick={() => requestDeleteProduct(product)}
+                                    disabled={deletingId === product.id}
+                                >
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
@@ -252,6 +300,42 @@ export default function ProductsPage() {
                             {isEditing ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={deleteOpen}
+                onOpenChange={(open) => {
+                    setDeleteOpen(open)
+                    if (!open) setDeleteTarget(null)
+                }}
+            >
+                <DialogContent className="text-xs">
+                    <DialogHeader>
+                        <DialogTitle>Delete Product</DialogTitle>
+                        <DialogDescription>
+                            This will permanently delete {deleteTarget?.name ? `"${deleteTarget.name}"` : "this product"}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteOpen(false)
+                                setDeleteTarget(null)
+                            }}
+                            disabled={!!deletingId}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => void deleteProduct()}
+                            disabled={!!deletingId}
+                        >
+                            {deletingId ? "Deleting..." : "Delete"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </main>

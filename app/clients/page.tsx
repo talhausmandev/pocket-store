@@ -5,13 +5,14 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Edit2, Plus } from "lucide-react"
+import { Edit2, Plus, Trash2 } from "lucide-react"
 
 interface Client {
     id: string
@@ -40,6 +41,9 @@ export default function ClientsPage() {
     const [editName, setEditName] = useState("")
     const [editContact, setEditContact] = useState("")
     const [isEditing, setIsEditing] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [deleteOpen, setDeleteOpen] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState<Client | null>(null)
 
     const loadClients = async () => {
         setError(null)
@@ -165,6 +169,40 @@ export default function ClientsPage() {
         }
     }
 
+    const requestDeleteClient = (client: Client) => {
+        setError(null)
+        if (!client?.id) return
+        setDeleteTarget(client)
+        setDeleteOpen(true)
+    }
+
+    const deleteClient = async () => {
+        setError(null)
+        if (!deleteTarget?.id) return
+        const clientId = deleteTarget.id
+
+        setDeletingId(clientId)
+        try {
+            const res = await fetch("/api/client", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: clientId }),
+            })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) {
+                setError(typeof data?.error === "string" ? data.error : "Failed to delete client")
+                return
+            }
+            setClients((prev) => prev.filter((c) => c.id !== clientId))
+            setDeleteOpen(false)
+            setDeleteTarget(null)
+        } catch {
+            setError("Failed to delete client")
+        } finally {
+            setDeletingId(null)
+        }
+    }
+
     return (
         <main className="w-full text-xs">
 
@@ -257,14 +295,26 @@ export default function ClientsPage() {
                             </div>
                         </div>
 
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openEditClient(client)}
-                        >
-                            <Edit2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openEditClient(client)}
+                                disabled={deletingId === client.id}
+                            >
+                                <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-700"
+                                onClick={() => requestDeleteClient(client)}
+                                disabled={deletingId === client.id}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 ))}
             </section>
@@ -296,6 +346,42 @@ export default function ClientsPage() {
                             {isEditing ? "Saving..." : "Save Changes"}
                         </Button>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={deleteOpen}
+                onOpenChange={(open) => {
+                    setDeleteOpen(open)
+                    if (!open) setDeleteTarget(null)
+                }}
+            >
+                <DialogContent className="text-xs">
+                    <DialogHeader>
+                        <DialogTitle>Delete Client</DialogTitle>
+                        <DialogDescription>
+                            This will permanently delete {deleteTarget?.name ? `"${deleteTarget.name}"` : "this client"}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteOpen(false)
+                                setDeleteTarget(null)
+                            }}
+                            disabled={!!deletingId}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => void deleteClient()}
+                            disabled={!!deletingId}
+                        >
+                            {deletingId ? "Deleting..." : "Delete"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

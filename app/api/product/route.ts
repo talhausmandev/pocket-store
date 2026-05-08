@@ -146,3 +146,37 @@ export async function PATCH(request: Request) {
     },
   })
 }
+
+export async function DELETE(request: Request) {
+  const { userId } = await auth()
+  if (!userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const body = (await request.json().catch(() => null)) as
+    | {
+        id?: unknown
+      }
+    | null
+
+  const id = typeof body?.id === "string" ? body.id : ""
+  if (!id || !Types.ObjectId.isValid(id)) {
+    return Response.json({ error: "Invalid product id" }, { status: 400 })
+  }
+
+  await connectDB()
+  const storeId = await getStoreIdForUser(userId)
+  if (!storeId) {
+    return Response.json({ error: "Store not set up" }, { status: 403 })
+  }
+
+  const deleted = await Product.findOneAndDelete({ _id: new Types.ObjectId(id), storeId })
+    .select({ _id: 1 })
+    .lean<{ _id: Types.ObjectId } | null>()
+
+  if (!deleted) {
+    return Response.json({ error: "Product not found" }, { status: 404 })
+  }
+
+  return Response.json({ ok: true, id: deleted._id.toString() })
+}
