@@ -32,13 +32,12 @@ export default function InvoicesPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const loadInvoices = async (q: string, status: "all" | Status) => {
+    const loadInvoices = async () => {
         setError(null)
         setIsLoading(true)
         try {
             const url = new URL("/api/invoice", window.location.origin)
-            url.searchParams.set("status", status)
-            if (q.trim()) url.searchParams.set("q", q.trim())
+            url.searchParams.set("status", "all")
 
             const res = await fetch(url.toString(), { cache: "no-store" })
             const data = await res.json().catch(() => null)
@@ -56,12 +55,25 @@ export default function InvoicesPage() {
         }
     }
 
+    const getFilteredInvoices = (list: Invoice[], q: string, status: "all" | Status) => {
+        const query = q.trim().toLowerCase()
+        return list.filter((inv) => {
+            if (status !== "all" && inv.status !== status) return false
+            if (!query) return true
+
+            return (
+                inv.invoiceNumber.toLowerCase().includes(query) ||
+                inv.customerName.toLowerCase().includes(query)
+            )
+        })
+    }
+
+    const filteredInvoices = getFilteredInvoices(invoices, search, activeTab)
+
     useEffect(() => {
-        const t = setTimeout(() => {
-            void loadInvoices(search, activeTab)
-        }, 200)
+        const t = setTimeout(() => void loadInvoices(), 0)
         return () => clearTimeout(t)
-    }, [search, activeTab])
+    }, [])
 
     return (
         <main className="w-full text-xs">
@@ -110,10 +122,12 @@ export default function InvoicesPage() {
             <section className="w-[90%] mt-4 space-y-3 mb-24">
                 {error ? <div className="text-xs text-red-600">{error}</div> : null}
                 {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
-                {!isLoading && invoices.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">No invoices yet.</div>
+                {!isLoading && filteredInvoices.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                        {invoices.length === 0 ? "No invoices yet." : "No matching invoices."}
+                    </div>
                 ) : null}
-                {invoices.map((item) => (
+                {filteredInvoices.map((item) => (
                     <Link
                         key={item.id}
                         href={`/invoices/${item.id}`}
