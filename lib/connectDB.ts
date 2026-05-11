@@ -1,6 +1,7 @@
 import mongoose, { type ConnectOptions } from "mongoose"
 
 const MONGODB_URI = process.env.MONGODB_URI
+const MONGODB_DB_NAME = (process.env.MONGODB_DB_NAME ?? "").trim() || "pocket-store"
 
 if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env.local")
@@ -29,6 +30,7 @@ const connectDB = async () => {
   if (!cached?.promise) {
     const opts: ConnectOptions = {
       bufferCommands: false,
+      dbName: MONGODB_DB_NAME,
     }
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongooseInstance) => {
