@@ -50,36 +50,16 @@ const computeInvoiceStatus = (invoice: InvoiceForStatus): InvoiceStatus => {
   return "pending"
 }
 
-const parseStatusFilter = (value: string | null): "all" | InvoiceStatus => {
-  if (value === "paid" || value === "pending" || value === "overdue") return value
-  return "all"
-}
-
-export async function GET(request: Request) {
+export async function GET() {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
-
-  const url = new URL(request.url)
-  const statusFilter = parseStatusFilter(url.searchParams.get("status"))
-  const q = (url.searchParams.get("q") ?? "").trim()
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? 50) || 50, 200)
 
   await connectDB()
   const storeId = await getStoreIdForUser(userId)
   if (!storeId) return Response.json({ error: "Store not set up" }, { status: 403 })
 
-  const query: Record<string, unknown> = { storeId }
-  if (q) {
-    query.$or = [
-      { invoiceNumber: { $regex: q, $options: "i" } },
-      { clientName: { $regex: q, $options: "i" } },
-      { clientContact: { $regex: q, $options: "i" } },
-    ]
-  }
-
-  const invoices = await Invoice.find(query)
+  const invoices = await Invoice.find({ storeId })
     .sort({ createdAt: -1 })
-    .limit(limit)
     .lean<InvoiceLean[]>()
 
   const mapped = invoices
@@ -100,7 +80,6 @@ export async function GET(request: Request) {
         isEstimate: !!inv.isEstimate,
       }
     })
-    .filter((inv) => (statusFilter === "all" ? true : inv.status === statusFilter))
 
   return Response.json({ invoices: mapped })
 }
