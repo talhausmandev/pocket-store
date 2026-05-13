@@ -34,14 +34,24 @@ export async function GET() {
         totalAmount: { $sum: "$totalAmount" },
         paidAmount: {
           $sum: {
-            $cond: [{ $eq: ["$status", "paid"] }, "$totalAmount", 0],
+            $cond: [{ $eq: ["$isEstimate", false] }, { $ifNull: ["$paidAmount", 0] }, 0],
           },
         },
         outstanding: {
           $sum: {
             $cond: [
-              { $and: [{ $ne: ["$status", "paid"] }, { $eq: ["$isEstimate", false] }] },
-              "$totalAmount",
+              { $eq: ["$isEstimate", false] },
+              {
+                $max: [
+                  0,
+                  {
+                    $subtract: [
+                      { $ifNull: ["$totalAmount", 0] },
+                      { $ifNull: ["$paidAmount", 0] },
+                    ],
+                  },
+                ],
+              },
               0,
             ],
           },
@@ -51,8 +61,8 @@ export async function GET() {
             $cond: [
               {
                 $and: [
-                  { $ne: ["$status", "paid"] },
                   { $eq: ["$isEstimate", false] },
+                  { $lt: [{ $ifNull: ["$paidAmount", 0] }, { $ifNull: ["$totalAmount", 0] }] },
                   { $lt: [{ $ifNull: ["$dueDate", new Date(8640000000000000)] }, today] },
                 ],
               },
@@ -75,22 +85,28 @@ export async function GET() {
 
   const recent = await Invoice.find({ storeId }).sort({ createdAt: -1 }).limit(6).lean()
   const recentInvoices = recent.map((inv) => {
-    const isEstimate = !!(inv).isEstimate
-    const dueDate = (inv).dueDate ? new Date((inv).dueDate) : null
+    const isEstimate = !!inv.isEstimate
+    const dueDate = inv.dueDate ? new Date(inv.dueDate) : null
+    const paidAmount = Number(inv.paidAmount ?? 0) || 0
+    const totalAmount = Number(inv.totalAmount ?? 0) || 0
+
     const status =
       isEstimate
-        ? "pending"
-        : inv.status === "paid"
+        ? "estimate"
+        : totalAmount > 0 && paidAmount >= totalAmount
           ? "paid"
-          : dueDate && dueDate < today
-            ? "overdue"
-            : "pending"
+          : paidAmount > 0
+            ? "partial"
+            : inv.status === "overdue" || (dueDate && dueDate < today)
+              ? "overdue"
+              : "pending"
 
     return {
-      id: String((inv)._id),
+      id: String(inv._id),
       invoiceNumber: inv.invoiceNumber,
       customerName: inv.clientName ?? "Customer",
-      amount: inv.totalAmount,
+      amount: totalAmount,
+      paidAmount,
       issueDate: inv.issueDate ? new Date(inv.issueDate).toISOString() : null,
       status,
       isEstimate,

@@ -7,24 +7,40 @@ import Link from "next/link"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+
+const formatProductApiError = (res: Response, data: unknown, fallback: string) => {
+    const error = (data as { error?: unknown } | null)?.error
+    const message = typeof error === "string" ? error : ""
+    const existing = (data as { existing?: unknown } | null)?.existing
+
+    if (res.status === 409 && (message === "Product name must be unique" || message.includes("unique"))) {
+        if (Array.isArray(existing) && existing.length > 0) {
+            const names = existing.filter((x) => typeof x === "string").slice(0, 8).join(", ")
+            return `Product name already exists (${names}). Please rename the product.`
+        }
+        return "Product name already exists. Please rename the product."
+    }
+
+    return message || fallback
+}
 
 export default function CreateProductPage() {
     const router = useRouter()
     const [formData, setFormData] = useState({
         name: "",
-        description: "",
         price: "",
         stock: "",
     })
     const [error, setError] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [appendStock, setAppendStock] = useState(true)
 
     const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
         setError(null)
 
         const name = formData.name.trim()
-        const description = formData.description.trim()
         const price = Number(formData.price)
         const stock = Number(formData.stock)
 
@@ -44,15 +60,15 @@ export default function CreateProductPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name,
-                    description,
                     price,
                     stock: Number.isFinite(stock) && stock >= 0 ? stock : 0,
+                    appendStock,
                 }),
             })
 
             const data = await res.json().catch(() => null)
             if (!res.ok) {
-                setError(typeof data?.error === "string" ? data.error : "Failed to create product")
+                setError(formatProductApiError(res, data, "Failed to create product"))
                 return
             }
 
@@ -96,19 +112,6 @@ export default function CreateProductPage() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Description</label>
-                        <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            placeholder="Enter description"
-                            rows={4}
-                            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
-                            disabled={isSubmitting}
-                        />
-                    </div>
-
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Price</label>
@@ -135,6 +138,12 @@ export default function CreateProductPage() {
                                 required
                                 disabled={isSubmitting}
                             />
+                            <div className="flex items-center gap-2 pt-1">
+                                <Switch checked={appendStock} onCheckedChange={setAppendStock} />
+                                <div className="text-[10px] text-muted-foreground">
+                                    If product already exists, add to its stock
+                                </div>
+                            </div>
                         </div>
                     </div>
 

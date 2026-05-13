@@ -5,7 +5,7 @@ import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 
-type Status = "paid" | "pending" | "overdue"
+type Status = "paid" | "pending" | "overdue" | "estimate" | "partial"
 
 type Summary = {
   totalInvoices: number
@@ -26,8 +26,10 @@ type InvoiceRow = {
 
 const statusStyles: Record<Status, string> = {
   paid: "bg-green-100 text-green-700",
+  partial: "bg-blue-100 text-blue-700",
   pending: "bg-yellow-100 text-yellow-700",
   overdue: "bg-red-100 text-red-700",
+  estimate: "bg-gray-100 text-gray-700",
 }
 
 export default function ReportsPage() {
