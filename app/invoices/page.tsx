@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Plus, Filter } from "lucide-react"
 import Link from "next/link"
 
-type Status = "paid" | "pending" | "overdue"
+type Status = "paid" | "pending" | "overdue" | "estimate" | "partial"
 
 interface Invoice {
     id: string
     invoiceNumber: string
     customerName: string
     amount: number
+    paidAmount: number
     issueDate: string | null
     status: Status
     isEstimate: boolean
@@ -21,8 +22,10 @@ interface Invoice {
 
 const statusStyles: Record<Status, string> = {
     paid: "bg-green-100 text-green-700",
+    partial: "bg-blue-100 text-blue-700",
     pending: "bg-yellow-100 text-yellow-700",
     overdue: "bg-red-100 text-red-700",
+    estimate: "bg-gray-100 text-gray-700",
 }
 
 export default function InvoicesPage() {
@@ -103,8 +106,8 @@ export default function InvoicesPage() {
             </section>
 
             {/* FILTER TABS */}
-            <section className="w-[90%] mt-3 flex gap-2">
-                {(["all", "paid", "pending", "overdue"] as const).map((tab) => (
+            <section className="w-[90%] mt-3 flex gap-2 flex-wrap">
+                {(["all", "estimate", "pending", "partial", "overdue", "paid"] as const).map((tab) => (
                     <button
                         key={tab}
                         className={`px-3 py-1 rounded-full text-xs capitalize ${tab === activeTab
@@ -150,6 +153,7 @@ export default function InvoicesPage() {
                                 <p className="truncate">{item.customerName}</p>
                                 <p className="text-[10px]">
                                     {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
+                                    {item.status === "partial" ? ` • Paid Rs ${Number(item.paidAmount || 0).toLocaleString()}` : ""}
                                 </p>
                             </div>
 

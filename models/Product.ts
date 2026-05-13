@@ -4,7 +4,6 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export interface IProduct extends Document {
   storeId: Types.ObjectId;
   name: string;
-  description?: string;
   price: number;
   stock: number;
   createdAt: Date;
@@ -19,11 +18,13 @@ const productSchema = new Schema<IProduct>(
       required: true,
     },
     name: { type: String, required: true },
-    description: String,
     price: { type: Number, required: true },
     stock: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+const NAME_COLLATION = { locale: "en", strength: 2 } as const;
+productSchema.index({ storeId: 1, name: 1 }, { unique: true, collation: NAME_COLLATION });
 
 export const Product = mongoose.models.Product || mongoose.model<IProduct>("Product", productSchema);

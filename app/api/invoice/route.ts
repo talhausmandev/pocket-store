@@ -7,12 +7,14 @@ import { Types } from "mongoose"
 
 export const dynamic = "force-dynamic"
 
-type InvoiceStatus = "paid" | "pending" | "overdue"
+type InvoiceStatus = "paid" | "pending" | "overdue" | "estimate" | "partial"
 
 type InvoiceForStatus = {
-  status: InvoiceStatus
+  status: "paid" | "pending" | "overdue"
   isEstimate?: boolean
   dueDate?: Date | null
+  paidAmount?: number
+  totalAmount?: number
 }
 
 type InvoiceLean = {
@@ -21,9 +23,10 @@ type InvoiceLean = {
   clientName?: string
   clientContact?: string
   totalAmount: number
+  paidAmount?: number
   issueDate?: Date
   dueDate?: Date
-  status: InvoiceStatus
+  status: "paid" | "pending" | "overdue"
   isEstimate?: boolean
 }
 
@@ -44,8 +47,16 @@ const startOfToday = () => {
 }
 
 const computeInvoiceStatus = (invoice: InvoiceForStatus): InvoiceStatus => {
-  if (invoice.isEstimate) return "pending"
+  if (invoice.isEstimate) return "estimate"
+
+  const paidAmount = Number(invoice.paidAmount ?? 0) || 0
+  const totalAmount = Number(invoice.totalAmount ?? 0) || 0
+
+  if (totalAmount > 0 && paidAmount >= totalAmount) return "paid"
+  if (paidAmount > 0) return "partial"
+
   if (invoice.status === "paid") return "paid"
+  if (invoice.status === "overdue") return "overdue"
   if (invoice.dueDate && invoice.dueDate < startOfToday()) return "overdue"
   return "pending"
 }
@@ -68,12 +79,15 @@ export async function GET() {
         status: inv.status,
         isEstimate: !!inv.isEstimate,
         dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
+        paidAmount: inv.paidAmount ?? 0,
+        totalAmount: inv.totalAmount,
       })
       return {
         id: inv._id.toString(),
         invoiceNumber: inv.invoiceNumber,
         customerName: inv.clientName ?? "Customer",
         amount: inv.totalAmount,
+        paidAmount: inv.paidAmount ?? 0,
         issueDate: inv.issueDate ? new Date(inv.issueDate).toISOString() : null,
         dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
         status: computedStatus,

@@ -29,6 +29,7 @@ interface InvoicePDFProps {
   discountType: "percent" | "amount"
   total: number
   companyName?: string
+  isEstimate?: boolean
 }
 
 const formatCurrency = (amount: number) => {
@@ -44,138 +45,147 @@ const toPdfSafeText = (value: unknown) => {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    paddingTop: 28,
+    paddingBottom: 64,
+    paddingHorizontal: 28,
     fontFamily: "Helvetica",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 40,
-  },
-  companyInfo: {
-    flexDirection: "column",
-  },
-  companyLogo: {
-    width: 80,
-    height: 48,
-    marginBottom: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  companyLogoText: {
+  companyName: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#ea580c",
-  },
-  companyName: {
-    fontSize: 18,
-    fontWeight: "bold",
     color: "#1f2937",
   },
-  invoiceInfo: {
-    textAlign: "right",
+  typeBanner: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
   },
-  invoiceTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#ea580c",
-  },
-  invoiceNumber: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 4,
-  },
-  invoiceDate: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  customerInfo: {
-    marginBottom: 40,
-  },
-  customerLabel: {
-    fontSize: 10,
-    color: "#6b7280",
-    marginBottom: 4,
-  },
-  customerName: {
+  typeBannerText: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#1f2937",
+    color: "#111827",
+    letterSpacing: 1,
   },
-  customerEmail: {
+  infoRow: {
+    flexDirection: "row",
+    marginTop: 12,
+  },
+  infoLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  infoRight: {
+    flex: 1,
+  },
+  infoBox: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    padding: 10,
+  },
+  infoLabel: {
+    fontSize: 10,
+    color: "#6b7280",
+    marginBottom: 6,
+  },
+  infoValue: {
     fontSize: 12,
-    color: "#4b5563",
+    color: "#111827",
+  },
+  infoValueStrong: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#111827",
   },
   table: {
-    marginBottom: 40,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    overflow: "hidden",
   },
   tableHeader: {
     flexDirection: "row",
-    borderBottom: 1,
-    borderBottomColor: "#e5e7eb",
-    paddingBottom: 8,
-    marginBottom: 8,
+    backgroundColor: "#f3f4f6",
+    borderBottomWidth: 1,
+    borderBottomColor: "#d1d5db",
   },
-  tableHeaderItem: {
+  cellItem: {
     flex: 6,
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "#4b5563",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRightWidth: 1,
+    borderRightColor: "#d1d5db",
   },
-  tableHeaderQty: {
+  cellQty: {
     flex: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRightWidth: 1,
+    borderRightColor: "#d1d5db",
+  },
+  cellPrice: {
+    flex: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRightWidth: 1,
+    borderRightColor: "#d1d5db",
+  },
+  cellTotal: {
+    flex: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  headerText: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#4b5563",
+    color: "#374151",
+  },
+  headerTextCenter: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#374151",
     textAlign: "center",
   },
-  tableHeaderPrice: {
-    flex: 2,
+  headerTextRight: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#4b5563",
+    color: "#374151",
     textAlign: "right",
   },
-  tableHeaderTotal: {
-    flex: 2,
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "#4b5563",
+  bodyText: {
+    fontSize: 11,
+    color: "#111827",
+  },
+  bodyTextCenter: {
+    fontSize: 11,
+    color: "#111827",
+    textAlign: "center",
+  },
+  bodyTextRight: {
+    fontSize: 11,
+    color: "#111827",
     textAlign: "right",
   },
   tableRow: {
     flexDirection: "row",
-    borderBottom: 1,
-    borderBottomColor: "#f3f4f6",
-    paddingVertical: 8,
-  },
-  tableItem: {
-    flex: 6,
-    fontSize: 12,
-    color: "#1f2937",
-  },
-  tableQty: {
-    flex: 2,
-    fontSize: 12,
-    color: "#4b5563",
-    textAlign: "center",
-  },
-  tablePrice: {
-    flex: 2,
-    fontSize: 12,
-    color: "#4b5563",
-    textAlign: "right",
-  },
-  tableTotal: {
-    flex: 2,
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#1f2937",
-    textAlign: "right",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
   totals: {
+    marginTop: 14,
     marginLeft: "auto",
     width: 240,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    backgroundColor: "#f9fafb",
+    padding: 10,
   },
   totalRow: {
     flexDirection: "row",
@@ -198,8 +208,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingTop: 8,
-    borderTop: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopWidth: 1,
+    borderTopColor: "#d1d5db",
     marginTop: 4,
   },
   grandTotalLabel: {
@@ -210,7 +220,16 @@ const styles = StyleSheet.create({
   grandTotalValue: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#ea580c",
+    color: "#111827",
+  },
+  footer: {
+    position: "absolute",
+    left: 28,
+    right: 28,
+    bottom: 24,
+    textAlign: "center",
+    fontSize: 10,
+    color: "#6b7280",
   },
 })
 
@@ -226,64 +245,78 @@ export default function InvoicePDF({
   discountType,
   total,
   companyName = "Pocket Store",
+  isEstimate = false,
 }: InvoicePDFProps) {
   const safeCompanyName = toPdfSafeText(companyName)
   const safeInvoiceNumber = toPdfSafeText(invoiceNumber)
   const safeDate = toPdfSafeText(date)
   const safeCustomerName = toPdfSafeText(customer?.name)
   const safeCustomerContact = toPdfSafeText(customer?.contact)
-  const logoLetter = safeCompanyName.charAt(0).toUpperCase() || "P"
+  const typeLabel = isEstimate ? "ESTIMATE" : "SALES INVOICE"
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.companyInfo}>
-            <View
-              style={[
-                styles.companyLogo,
-                { backgroundColor: "#ffedd5", borderRadius: 8 },
-              ]}
-            >
-              <Text style={styles.companyLogoText}>{logoLetter}</Text>
+        <Text style={styles.companyName}>{safeCompanyName}</Text>
+        <View style={styles.typeBanner}>
+          <Text style={styles.typeBannerText}>{typeLabel}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <View style={styles.infoLeft}>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoLabel}>BILL TO</Text>
+              <Text style={styles.infoValueStrong}>{safeCustomerName}</Text>
+              <Text style={styles.infoValue}>{safeCustomerContact}</Text>
             </View>
-            <Text style={styles.companyName}>{safeCompanyName}</Text>
           </View>
-          <View style={styles.invoiceInfo}>
-            <Text style={styles.invoiceTitle}>INVOICE</Text>
-            <Text style={styles.invoiceNumber}>#{safeInvoiceNumber}</Text>
-            <Text style={styles.invoiceDate}>{safeDate}</Text>
+          <View style={styles.infoRight}>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoLabel}>INVOICE DETAILS</Text>
+              <View style={styles.totalRow}>
+                <Text style={styles.infoValue}>Invoice No</Text>
+                <Text style={styles.infoValueStrong}>#{safeInvoiceNumber}</Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.infoValue}>Invoice Date</Text>
+                <Text style={styles.infoValueStrong}>{safeDate}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Customer Info */}
-        <View style={styles.customerInfo}>
-          <Text style={styles.customerLabel}>Bill To:</Text>
-          <Text style={styles.customerName}>{safeCustomerName}</Text>
-          <Text style={styles.customerEmail}>{safeCustomerContact}</Text>
-        </View>
-
-        {/* Items Table */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={styles.tableHeaderItem}>Item</Text>
-            <Text style={styles.tableHeaderQty}>Qty</Text>
-            <Text style={styles.tableHeaderPrice}>Price</Text>
-            <Text style={styles.tableHeaderTotal}>Total</Text>
+            <View style={styles.cellItem}>
+              <Text style={styles.headerText}>Item</Text>
+            </View>
+            <View style={styles.cellQty}>
+              <Text style={styles.headerTextCenter}>Qty</Text>
+            </View>
+            <View style={styles.cellPrice}>
+              <Text style={styles.headerTextRight}>Price</Text>
+            </View>
+            <View style={styles.cellTotal}>
+              <Text style={styles.headerTextRight}>Total</Text>
+            </View>
           </View>
           {items.map((item: InvoiceItem, index: number) => (
             <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableItem}>{toPdfSafeText(item.name)}</Text>
-              <Text style={styles.tableQty}>{item.quantity}</Text>
-              <Text style={styles.tablePrice}>{formatCurrency(item.price)}</Text>
-              <Text style={styles.tableTotal}>
-                {formatCurrency(item.quantity * item.price)}
-              </Text>
+              <View style={styles.cellItem}>
+                <Text style={styles.bodyText}>{toPdfSafeText(item.name)}</Text>
+              </View>
+              <View style={styles.cellQty}>
+                <Text style={styles.bodyTextCenter}>{item.quantity}</Text>
+              </View>
+              <View style={styles.cellPrice}>
+                <Text style={styles.bodyTextRight}>{formatCurrency(item.price)}</Text>
+              </View>
+              <View style={styles.cellTotal}>
+                <Text style={styles.bodyTextRight}>{formatCurrency(item.quantity * item.price)}</Text>
+              </View>
             </View>
           ))}
         </View>
 
-        {/* Totals */}
         <View style={styles.totals}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal</Text>
@@ -308,6 +341,8 @@ export default function InvoicePDF({
             <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
+
+        <Text style={styles.footer}>Thanks to customer.</Text>
       </Page>
     </Document>
   )

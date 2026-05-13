@@ -15,6 +15,7 @@ import {
   BarChart3,
   Settings,
   Database,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -25,7 +26,7 @@ const menuItems = [
   { title: "Products / Services", link: "/products", icon: Package },
   { title: "Payments", link: "/", icon: CreditCard },
   { title: "Reports", link: "/reports", icon: BarChart3 },
-  { title: "Templates", link: "/", icon: FileText },
+  { title: "AI", link: "/ai", icon: Sparkles },
 ]
 
 export function AppSidebar() {
