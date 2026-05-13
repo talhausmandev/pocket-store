@@ -232,6 +232,7 @@ export default function InvoiceDetailPage() {
           discountType="amount"
           total={invoice.totalAmount}
           companyName={invoice.storeName}
+          isEstimate={invoice.isEstimate}
         />
       ).toBlob()
 
@@ -507,6 +508,7 @@ export default function InvoiceDetailPage() {
                     discountType="amount"
                     total={invoice.totalAmount}
                     companyName={invoice.storeName}
+                    isEstimate={invoice.isEstimate}
                   />
                 }
                 fileName={`${invoice.invoiceNumber}.pdf`}
@@ -544,6 +546,7 @@ export default function InvoiceDetailPage() {
                     discountType="amount"
                     total={invoice.totalAmount}
                     companyName={invoice.storeName}
+                    isEstimate={invoice.isEstimate}
                   />
                 </PDFViewer>
               </div>

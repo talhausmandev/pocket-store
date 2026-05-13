@@ -429,6 +429,7 @@ export default function CreateInvoicePage() {
                         discountType={discountType}
                         total={calculateTotal()}
                         companyName={storeName}
+                        isEstimate={isEstimate}
                       />
                     }
                     fileName={`invoice-${invoiceNumber}.pdf`}
@@ -466,6 +467,7 @@ export default function CreateInvoicePage() {
                 discountType={discountType}
                 total={calculateTotal()}
                 companyName={storeName}
+                isEstimate={isEstimate}
               />
             </PDFViewer>
           </div>
@@ -844,6 +846,7 @@ export default function CreateInvoicePage() {
                 discountType={discountType}
                 total={calculateTotal()}
                 companyName={storeName}
+                isEstimate={isEstimate}
               />
             ) : (
               <div className="flex items-center justify-center h-full min-h-[400px] text-muted-foreground">

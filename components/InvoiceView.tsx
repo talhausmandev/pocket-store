@@ -24,6 +24,7 @@ interface InvoiceViewProps {
   discountType: "percent" | "amount"
   total: number
   companyName?: string
+  isEstimate?: boolean
 }
 
 const formatCurrency = (amount: number) => {
@@ -43,75 +44,88 @@ export default function InvoiceView({
   discountType,
   total,
   companyName = "Pocket Store",
+  isEstimate = false,
 }: InvoiceViewProps) {
+  const typeLabel = isEstimate ? "ESTIMATE" : "SALES INVOICE"
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white shadow-lg print:shadow-none">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <div className="h-12 w-24 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 font-bold">
-            {companyName.charAt(0)}
+    <div className="w-[210mm] min-h-[297mm] mx-auto bg-white shadow-lg print:shadow-none print:w-auto print:min-h-0">
+      <div className="p-10 print:p-0">
+        <div className="text-2xl font-bold text-gray-900">{companyName}</div>
+
+        <div className="mt-3 w-full rounded-lg border border-gray-300 bg-gray-50 py-2 text-center font-semibold tracking-wide text-gray-900">
+          {typeLabel}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-gray-300 bg-white p-3">
+            <div className="text-[10px] uppercase tracking-wide text-gray-500">Bill To</div>
+            <div className="mt-2 font-semibold text-gray-900">{customer.name || "-"}</div>
+            <div className="text-gray-600">{customer.contact || "-"}</div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">{companyName}</h1>
-        </div>
-        <div className="text-right">
-          <h2 className="text-3xl font-bold text-orange-600">INVOICE</h2>
-          <p className="text-gray-500 mt-1">#{invoiceNumber}</p>
-          <p className="text-gray-500">{date}</p>
-        </div>
-      </div>
-
-      {/* Customer Info */}
-      <div className="mb-8">
-        <p className="text-sm text-gray-500 mb-1">Bill To:</p>
-        <p className="font-semibold text-gray-800">{customer.name}</p>
-        <p className="text-gray-600">{customer.contact}</p>
-      </div>
-
-      {/* Items Table */}
-      <div className="mb-8">
-        <div className="grid grid-cols-12 gap-2 border-b border-gray-200 pb-2 mb-2">
-          <div className="col-span-6 font-semibold text-gray-600">Item</div>
-          <div className="col-span-2 font-semibold text-gray-600 text-center">Qty</div>
-          <div className="col-span-2 font-semibold text-gray-600 text-right">Price</div>
-          <div className="col-span-2 font-semibold text-gray-600 text-right">Total</div>
-        </div>
-        {items.map((item: InvoiceItem, index: number) => (
-          <div key={index} className="grid grid-cols-12 gap-2 py-2 border-b border-gray-100">
-            <div className="col-span-6 text-gray-800">{item.name}</div>
-            <div className="col-span-2 text-gray-600 text-center">{item.quantity}</div>
-            <div className="col-span-2 text-gray-600 text-right">{formatCurrency(item.price)}</div>
-            <div className="col-span-2 font-semibold text-gray-800 text-right">
-              {formatCurrency(item.quantity * item.price)}
+          <div className="rounded-lg border border-gray-300 bg-white p-3">
+            <div className="text-[10px] uppercase tracking-wide text-gray-500">Invoice Details</div>
+            <div className="mt-2 flex justify-between gap-4">
+              <span className="text-gray-600">Invoice No</span>
+              <span className="font-semibold text-gray-900">#{invoiceNumber}</span>
+            </div>
+            <div className="mt-1 flex justify-between gap-4">
+              <span className="text-gray-600">Invoice Date</span>
+              <span className="font-semibold text-gray-900">{date}</span>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Totals */}
-      <div className="ml-auto w-64 space-y-2">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Subtotal</span>
-          <span className="text-gray-800">{formatCurrency(subtotal)}</span>
-        </div>
-        {tax > 0 && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">Tax ({taxRate}%)</span>
-            <span className="text-gray-800">{formatCurrency(tax)}</span>
+        <div className="mt-4 rounded-lg border border-gray-300 overflow-hidden">
+          <div className="grid grid-cols-12 bg-gray-100 text-gray-700 font-semibold text-xs">
+            <div className="col-span-6 px-3 py-2 border-r border-gray-300">Item</div>
+            <div className="col-span-2 px-3 py-2 border-r border-gray-300 text-center">Qty</div>
+            <div className="col-span-2 px-3 py-2 border-r border-gray-300 text-right">Price</div>
+            <div className="col-span-2 px-3 py-2 text-right">Total</div>
           </div>
-        )}
-        {discount > 0 && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">
-              Discount ({discountType === "percent" ? `${discount}%` : formatCurrency(discount)})
-            </span>
-            <span className="text-red-600">-{formatCurrency(discount)}</span>
-          </div>
-        )}
-        <div className="flex justify-between pt-2 border-t border-gray-200 font-semibold text-lg">
-          <span className="text-gray-800">Total</span>
-          <span className="text-orange-600">{formatCurrency(total)}</span>
+          {items.map((item: InvoiceItem, index: number) => (
+            <div key={index} className="grid grid-cols-12 text-xs border-t border-gray-200">
+              <div className="col-span-6 px-3 py-2 border-r border-gray-200 text-gray-900">
+                {item.name || "-"}
+              </div>
+              <div className="col-span-2 px-3 py-2 border-r border-gray-200 text-center text-gray-700">
+                {item.quantity}
+              </div>
+              <div className="col-span-2 px-3 py-2 border-r border-gray-200 text-right text-gray-700">
+                {formatCurrency(item.price)}
+              </div>
+              <div className="col-span-2 px-3 py-2 text-right font-semibold text-gray-900">
+                {formatCurrency(item.quantity * item.price)}
+              </div>
+            </div>
+          ))}
         </div>
+
+        <div className="mt-4 ml-auto w-full sm:w-72 rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm">
+          <div className="flex justify-between text-gray-700">
+            <span>Subtotal</span>
+            <span className="text-gray-900">{formatCurrency(subtotal)}</span>
+          </div>
+          {tax > 0 ? (
+            <div className="mt-1 flex justify-between text-gray-700">
+              <span>Tax ({taxRate}%)</span>
+              <span className="text-gray-900">{formatCurrency(tax)}</span>
+            </div>
+          ) : null}
+          {discount > 0 ? (
+            <div className="mt-1 flex justify-between">
+              <span className="text-gray-700">
+                Discount ({discountType === "percent" ? `${discount}%` : formatCurrency(discount)})
+              </span>
+              <span className="text-red-600">-{formatCurrency(discount)}</span>
+            </div>
+          ) : null}
+          <div className="mt-2 pt-2 border-t border-gray-300 flex justify-between font-semibold">
+            <span className="text-gray-900">Total</span>
+            <span className="text-gray-900">{formatCurrency(total)}</span>
+          </div>
+        </div>
+
+        <div className="mt-10 text-center text-xs text-gray-500">Thanks to customer.</div>
       </div>
     </div>
   )
