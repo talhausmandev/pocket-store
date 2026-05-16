@@ -78,60 +78,62 @@ export default function ReportsPage() {
 
   return (
     <main className="w-full text-xs">
-      <div className="w-[90%] flex justify-between my-2">
-        <div className="text-xl mx-10 font-bold">Reports</div>
-        <Link href="/invoices" className="text-primary">Invoices</Link>
-      </div>
-
-      {error ? <div className="w-[90%] text-xs text-red-600">{error}</div> : null}
-
-      <section className="w-[90%] grid grid-cols-2 gap-3 my-4">
-        <div className="p-3 rounded-xl border bg-white shadow-sm">
-          <div className="text-muted-foreground text-[10px]">Total Invoices</div>
-          <div className="text-sm font-semibold">{summary.totalInvoices}</div>
-        </div>
-        <div className="p-3 rounded-xl border bg-white shadow-sm">
-          <div className="text-muted-foreground text-[10px]">Total Amount</div>
-          <div className="text-sm font-semibold">Rs {summary.totalAmount.toLocaleString()}</div>
-        </div>
-        <div className="p-3 rounded-xl border bg-white shadow-sm">
-          <div className="text-muted-foreground text-[10px]">Paid</div>
-          <div className="text-sm font-semibold">Rs {summary.paidAmount.toLocaleString()}</div>
-        </div>
-        <div className="p-3 rounded-xl border bg-white shadow-sm">
-          <div className="text-muted-foreground text-[10px]">Outstanding</div>
-          <div className="text-sm font-semibold">Rs {summary.outstanding.toLocaleString()}</div>
-        </div>
-      </section>
-
-      <section className="w-[90%] mt-4 space-y-3 mb-24">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold">Overdue Invoices</div>
-          <div className="text-muted-foreground text-[10px]">{summary.overdueCount} overdue</div>
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-lg sm:text-xl font-bold leading-tight">Reports</div>
+          <Link href="/invoices" className="text-primary whitespace-nowrap">Invoices</Link>
         </div>
 
-        {overdue.length === 0 ? (
-          <div className="text-muted-foreground text-xs">No overdue invoices.</div>
-        ) : null}
+        {error ? <div className="text-xs text-red-600 mt-2">{error}</div> : null}
 
-        {overdue.map((inv) => (
-          <div key={inv.id} className="p-3 rounded-xl border bg-white shadow-sm">
-            <div className="flex justify-between items-center">
-              <div className="font-semibold">{inv.invoiceNumber}</div>
-              <div className="font-semibold">Rs {inv.amount.toLocaleString()}</div>
-            </div>
-            <div className="flex justify-between items-center mt-1 text-muted-foreground">
-              <div className="min-w-0">
-                <div className="truncate">{inv.customerName}</div>
-                <div className="text-[10px]">
-                  {inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "-"}
-                </div>
-              </div>
-              <Badge className={statusStyles[inv.status]}>{inv.status}</Badge>
-            </div>
+        <section className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div className="p-3 rounded-xl border bg-white shadow-sm">
+            <div className="text-muted-foreground text-[10px]">Total Invoices</div>
+            <div className="text-sm font-semibold">{summary.totalInvoices}</div>
           </div>
-        ))}
-      </section>
+          <div className="p-3 rounded-xl border bg-white shadow-sm">
+            <div className="text-muted-foreground text-[10px]">Total Amount</div>
+            <div className="text-sm font-semibold">Rs {summary.totalAmount.toLocaleString()}</div>
+          </div>
+          <div className="p-3 rounded-xl border bg-white shadow-sm">
+            <div className="text-muted-foreground text-[10px]">Paid</div>
+            <div className="text-sm font-semibold">Rs {summary.paidAmount.toLocaleString()}</div>
+          </div>
+          <div className="p-3 rounded-xl border bg-white shadow-sm">
+            <div className="text-muted-foreground text-[10px]">Outstanding</div>
+            <div className="text-sm font-semibold">Rs {summary.outstanding.toLocaleString()}</div>
+          </div>
+        </section>
+
+        <section className="mt-4 space-y-3 mb-24">
+          <div className="flex items-center justify-between gap-3">
+            <div className="font-semibold">Overdue Invoices</div>
+            <div className="text-muted-foreground text-[10px] whitespace-nowrap">{summary.overdueCount} overdue</div>
+          </div>
+
+          {overdue.length === 0 ? (
+            <div className="text-muted-foreground text-xs">No overdue invoices.</div>
+          ) : null}
+
+          {overdue.map((inv) => (
+            <div key={inv.id} className="p-2 sm:p-3 rounded-xl border bg-white shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 font-semibold truncate">{inv.invoiceNumber}</div>
+                <div className="shrink-0 font-semibold">Rs {inv.amount.toLocaleString()}</div>
+              </div>
+              <div className="flex items-center justify-between gap-3 mt-1 text-muted-foreground">
+                <div className="min-w-0">
+                  <div className="truncate">{inv.customerName}</div>
+                  <div className="text-[10px]">
+                    {inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "-"}
+                  </div>
+                </div>
+                <Badge className={statusStyles[inv.status]}>{inv.status}</Badge>
+              </div>
+            </div>
+          ))}
+        </section>
+      </div>
     </main>
   )
 }

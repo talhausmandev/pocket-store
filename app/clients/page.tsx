@@ -205,119 +205,112 @@ export default function ClientsPage() {
 
     return (
         <main className="w-full text-xs">
+            <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+                <Dialog>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="text-lg sm:text-xl font-bold leading-tight">Clients</div>
 
-            {/* HEADER + DIALOG */}
-            <Dialog>
-                <div className="w-[90%] flex justify-between my-2">
-                    <div className="text-xl font-bold mx-10">
-                        Clients
+                        <DialogTrigger asChild>
+                            <button className="h-9 w-9 flex items-center justify-center rounded-full bg-orange-500 text-white shadow hover:bg-orange-600 transition shrink-0">
+                                <Plus className="h-5 w-5" />
+                            </button>
+                        </DialogTrigger>
                     </div>
 
-                    <DialogTrigger asChild>
-                        <button className="h-6 w-6 flex items-center justify-center rounded-full bg-orange-500 text-white shadow">
-                            <Plus className="h-4 w-4" />
-                        </button>
-                    </DialogTrigger>
-                </div>
+                    <DialogContent className="text-xs">
+                        <DialogHeader>
+                            <DialogTitle>Add Client</DialogTitle>
+                            <DialogDescription>
+                                Add a new client by entering their name and contact details.
+                            </DialogDescription>
+                        </DialogHeader>
 
-                <DialogContent className="text-xs">
-                    <DialogHeader>
-                        <DialogTitle>Add Client</DialogTitle>
-                        <DialogDescription>
-                            Add a new client by entering their name and contact details.
-                        </DialogDescription>
-                    </DialogHeader>
+                        <form className="space-y-3" onSubmit={addClient}>
+                            <Input
+                                placeholder="Client Name"
+                                value={newClient.name}
+                                onChange={(e) =>
+                                    setNewClient({ ...newClient, name: e.target.value })
+                                }
+                            />
 
-                    <form className="space-y-3" onSubmit={addClient}>
-                        <Input
-                            placeholder="Client Name"
-                            value={newClient.name}
-                            onChange={(e) =>
-                                setNewClient({ ...newClient, name: e.target.value })
-                            }
-                        />
+                            <Input
+                                placeholder="Contact"
+                                value={newClient.contact}
+                                onChange={(e) =>
+                                    setNewClient({ ...newClient, contact: e.target.value })
+                                }
+                            />
 
-                        <Input
-                            placeholder="Contact"
-                            value={newClient.contact}
-                            onChange={(e) =>
-                                setNewClient({ ...newClient, contact: e.target.value })
-                            }
-                        />
+                            <Button
+                                type="submit"
+                                className="w-full bg-orange-500 hover:bg-orange-600"
+                            >
+                                Save Client
+                            </Button>
+                        </form>
+                    </DialogContent>
+                </Dialog>
 
-                        <Button
-                            type="submit"
-                            className="w-full bg-orange-500 hover:bg-orange-600"
+                <section className="mt-3">
+                    <Input
+                        placeholder="Search clients..."
+                        className="h-9 text-xs"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </section>
+
+                <section className="mt-4 space-y-2 sm:space-y-3 mb-24">
+                    {error ? <div className="text-xs text-red-600">{error}</div> : null}
+                    {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
+                    {!isLoading && filteredClients.length === 0 ? (
+                        <div className="text-xs text-muted-foreground">
+                            {clients.length === 0 ? "No clients yet." : "No matching clients."}
+                        </div>
+                    ) : null}
+                    {filteredClients.map((client) => (
+                        <div
+                            key={client.id}
+                            className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
                         >
-                            Save Client
-                        </Button>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="h-9 w-9 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-semibold shrink-0">
+                                    {client.name.charAt(0)}
+                                </div>
 
-            {/* SEARCH */}
-            <section className="w-[90%]">
-                <Input
-                    placeholder="Search clients..."
-                    className="h-9 text-xs"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-            </section>
-
-            {/* CLIENT LIST */}
-            <section className="w-[90%] mt-4 space-y-3 mb-24">
-                {error ? <div className="text-xs text-red-600">{error}</div> : null}
-                {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
-                {!isLoading && filteredClients.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">
-                        {clients.length === 0 ? "No clients yet." : "No matching clients."}
-                    </div>
-                ) : null}
-                {filteredClients.map((client) => (
-                    <div
-                        key={client.id}
-                        className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
-                    >
-                        {/* LEFT */}
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-9 w-9 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-semibold">
-                                {client.name.charAt(0)}
+                                <div className="min-w-0">
+                                    <p className="font-medium truncate">{client.name}</p>
+                                    <p className="text-muted-foreground truncate text-[10px]">
+                                        {client.contact || "-"}
+                                    </p>
+                                </div>
                             </div>
 
-                            <div className="min-w-0">
-                                <p className="font-medium truncate">
-                                    {client.name}
-                                </p>
-                                <p className="text-muted-foreground truncate text-[10px]">
-                                    {client.contact || "-"}
-                                </p>
+                            <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEditClient(client)}
+                                    disabled={deletingId === client.id}
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-600 hover:text-red-700"
+                                    onClick={() => requestDeleteClient(client)}
+                                    disabled={deletingId === client.id}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => openEditClient(client)}
-                                disabled={deletingId === client.id}
-                            >
-                                <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-red-600 hover:text-red-700"
-                                onClick={() => requestDeleteClient(client)}
-                                disabled={deletingId === client.id}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
-            </section>
+                    ))}
+                </section>
+            </div>
 
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
                 <DialogContent className="text-xs">

@@ -2,10 +2,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-body {
-  background: rgba(250, 229, 189);
-}
-
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);

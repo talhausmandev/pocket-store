@@ -435,14 +435,14 @@ export default function ProductsPage() {
     }
 
     return (
-        <main className="w-[90%]">
-            <div className="w-full max-w-7xl mx-auto px-4 my-4">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="text-xl font-bold"> Products / Services</div>
-                    <div className="flex items-center gap-2">
+        <main className="w-full text-xs">
+            <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-3">
+                    <div className="text-lg sm:text-xl font-bold leading-tight">Products / Services</div>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
                         <Button
                             variant="outline"
-                            className="h-10"
+                            className="h-9 text-xs"
                             onClick={() => {
                                 setSelectMode((v) => {
                                     const next = !v
@@ -456,30 +456,38 @@ export default function ProductsPage() {
 
                         {selectMode ? (
                             <>
-                                <Button variant="outline" className="h-10" onClick={selectAllFiltered} disabled={filteredProducts.length === 0}>
-                                    Select All
+                                <Button
+                                    variant="outline"
+                                    className="h-9 text-xs whitespace-nowrap"
+                                    onClick={selectAllFiltered}
+                                    disabled={filteredProducts.length === 0}
+                                >
+                                    <span className="hidden sm:inline">Select All</span>
+                                    <span className="sm:hidden">All</span>
                                 </Button>
                                 <Button
-                                    className="h-10 bg-orange-500 hover:bg-orange-600"
+                                    className="h-9 bg-orange-500 hover:bg-orange-600 text-xs whitespace-nowrap"
                                     onClick={openBulkEditSelected}
                                     disabled={selectedIds.length === 0}
                                 >
-                                    Bulk Edit ({selectedIds.length})
+                                    <span className="hidden sm:inline">Bulk Edit</span>
+                                    <span className="sm:hidden">Edit</span> ({selectedIds.length})
                                 </Button>
                                 <Button
-                                    className="h-10 bg-red-600 hover:bg-red-700"
+                                    className="h-9 bg-red-600 hover:bg-red-700 text-xs whitespace-nowrap"
                                     onClick={requestBulkDeleteSelected}
                                     disabled={selectedIds.length === 0}
                                 >
-                                    Bulk Delete ({selectedIds.length})
+                                    <span className="hidden sm:inline">Bulk Delete</span>
+                                    <span className="sm:hidden">Delete</span> ({selectedIds.length})
                                 </Button>
                             </>
                         ) : null}
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="h-10">
-                                    import bulk
+                                <Button variant="outline" className="h-9 text-xs whitespace-nowrap">
+                                    Import
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -500,7 +508,7 @@ export default function ProductsPage() {
 
                         <Link
                             href="/products/create-product"
-                            className="h-10 w-10 flex items-center justify-center rounded-full bg-orange-500 text-white shadow hover:bg-orange-600 transition"
+                            className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-full bg-orange-500 text-white shadow hover:bg-orange-600 transition"
                         >
                             <Plus className="h-5 w-5" />
                         </Link>
@@ -510,7 +518,7 @@ export default function ProductsPage() {
                 </div>
 
                 {/* SEARCH */}
-                <section className="w-full mb-4">
+                <section className="w-full mb-3">
                     <Input
                         placeholder="Search products..."
                         className="h-9 text-xs"
@@ -520,7 +528,7 @@ export default function ProductsPage() {
                 </section>
 
                 {/* PRODUCT LIST */}
-                <section className="w-full mt-4 space-y-3 mb-24">
+                <section className="w-full mt-3 space-y-2 sm:space-y-3 mb-24">
                     {error ? <div className="text-xs text-red-600">{error}</div> : null}
                     {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
                     {!isLoading && filteredProducts.length === 0 ? (
@@ -531,20 +539,20 @@ export default function ProductsPage() {
                     {filteredProducts.map((product) => (
                         <div
                             key={product.id}
-                            className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
+                            className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
                         >
                             {/* LEFT */}
                             <div className="flex items-center gap-3 min-w-0">
                                 {selectMode ? (
                                     <input
                                         type="checkbox"
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 sm:h-5 sm:w-5"
                                         checked={selectedIds.includes(product.id)}
                                         onChange={() => toggleSelected(product.id)}
                                         disabled={deletingId === product.id}
                                     />
                                 ) : null}
-                                <div className="h-10 w-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-semibold flex-shrink-0">
+                                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-semibold flex-shrink-0">
                                     {product.name.charAt(0)}
                                 </div>
 
@@ -556,7 +564,7 @@ export default function ProductsPage() {
                             </div>
 
                             {/* RIGHT */}
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                                 <div className="text-right">
                                     <p className="font-semibold text-orange-600">
                                         Rs {product.price.toFixed(2)}

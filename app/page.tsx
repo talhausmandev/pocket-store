@@ -91,86 +91,64 @@ export default function Home() {
 }
 
   return (
-    <main className="w-full">
-      <div className="text-xl mx-10 font-bold my-2">
-        Dashboard
-      </div>
+    <main className="w-full text-xs">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="text-lg sm:text-xl font-bold leading-tight">Dashboard</div>
 
-      <section className="w-[90%] my-10 flex flex-wrap gap-4 justify-center">
-        {mainCards.map((card, index) => {
-          const Icon = card.icon
+        <section className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {mainCards.map((card, index) => {
+            const Icon = card.icon
 
-          return (
-            <div
-              key={index}
-              className="flex items-center w-[46%] gap-5 justify-between rounded-2xl border p-5 bg-white shadow-sm hover:shadow-md transition min-w-0"
-            >
-              {/* TEXT */}
-              <div className="min-w-0">
-                <p className="text-[9px] text-muted-foreground">
-                  {card.title}
-                </p>
-
-                <h2 className="text-xs font-semibold truncate">
-                  {card.value}
-                </h2>
-
-                <p className="text-xs text-muted-foreground mt-1">
-                  This Month
-                </p>
-              </div>
-
-              {/* ICON */}
+            return (
               <div
-                className="p-1 rounded-xl shrink-0"
-                style={{ backgroundColor: card.iconBg }}
+                key={index}
+                className="flex items-center justify-between gap-4 rounded-2xl border p-4 bg-white shadow-sm hover:shadow-md transition min-w-0"
               >
-                <Icon
-                  className="h-4 w-4"
-                  style={{ color: card.iconColor }}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </section>
-
-      <section className="w-[90%] p-4 bg-white shadow-md shadow-[#816300] rounded-xl text-xs mb-20">
-        <div className="flex justify-between">
-          <h2 className="font-bold">Recent Invoices</h2>
-          <Link href="/invoices" className="text-primary">View All</Link>
-        </div>
-
-        {error ? <div className="text-xs text-red-600 mt-2">{error}</div> : null}
-        {
-          recentInvoices.map((item) => (
-            <div key={item.id} className="my-3 flex flex-col gap-1">
-              <div className="flex justify-between font-semibold">
-                <div>
-                  {item.invoiceNumber}
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground">{card.title}</p>
+                  <h2 className="text-sm font-semibold truncate">{card.value}</h2>
+                  <p className="text-[10px] text-muted-foreground mt-1">This Month</p>
                 </div>
-                <div>
-                  Rs {item.amount.toLocaleString()}
+
+                <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: card.iconBg }}>
+                  <Icon className="h-4 w-4" style={{ color: card.iconColor }} />
                 </div>
               </div>
-              <div className="flex justify-between text-muted-foreground items-center">
-                <div>
-                  <div>
-                  {item.customerName}
+            )
+          })}
+        </section>
+
+        <section className="mt-4 p-4 bg-white shadow-md rounded-xl mb-20">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-bold">Recent Invoices</h2>
+            <Link href="/invoices" className="text-primary whitespace-nowrap">View All</Link>
+          </div>
+
+          {error ? <div className="text-xs text-red-600 mt-2">{error}</div> : null}
+
+          {recentInvoices.length === 0 ? (
+            <div className="text-xs text-muted-foreground mt-3">No invoices yet.</div>
+          ) : (
+            recentInvoices.map((item) => (
+              <div key={item.id} className="mt-3 space-y-1">
+                <div className="flex items-center justify-between gap-3 font-semibold">
+                  <div className="min-w-0 truncate">{item.invoiceNumber}</div>
+                  <div className="shrink-0">Rs {item.amount.toLocaleString()}</div>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-muted-foreground">
+                  <div className="min-w-0">
+                    <div className="truncate">{item.customerName}</div>
+                    <div className="text-[10px]">
+                      {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
+                    </div>
                   </div>
-                  <div>
-                    {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
-                  </div>
-                </div>
-                <div>
-                  <Badge className={statusStyles[item.status]} >{item.status}</Badge>
+                  <Badge className={statusStyles[item.status]}>{item.status}</Badge>
                 </div>
               </div>
-            </div>
-          ))
-        }
-
-      </section>
+            ))
+          )}
+        </section>
+      </div>
     </main>
   )
 }

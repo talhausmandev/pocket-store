@@ -85,11 +85,10 @@ export default function AiPage() {
 
   return (
     <main className="w-full text-xs">
-      <div className="w-[90%] flex justify-between my-2">
-        <div className="text-xl mx-10 font-bold">AI</div>
-      </div>
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="text-lg sm:text-xl font-bold leading-tight">AI</div>
 
-      <section className="w-[90%] grid grid-cols-1 lg:grid-cols-2 gap-3 mb-24">
+        <section className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3 mb-24">
         <div className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
           <div className="font-semibold">Extract Products</div>
           <div className="text-[10px] text-muted-foreground">
@@ -141,16 +140,22 @@ export default function AiPage() {
             <div className="text-muted-foreground">No results yet.</div>
           ) : (
             <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_120px_120px] gap-2 text-[10px] text-muted-foreground px-1">
+              <div className="hidden sm:grid grid-cols-[1fr_120px_120px] gap-2 text-[10px] text-muted-foreground px-1">
                 <div>Name</div>
                 <div>Price</div>
                 <div>Stock</div>
               </div>
               {products.slice(0, 50).map((p, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_120px_120px] gap-2 p-2 rounded-lg border bg-muted/20">
-                  <div className="truncate font-medium">{p.name}</div>
-                  <div>Rs {Number(p.price || 0).toLocaleString()}</div>
-                  <div>{Number(p.stock || 0).toLocaleString()}</div>
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px] gap-1 sm:gap-2 p-2 rounded-lg border bg-muted/20">
+                  <div className="truncate font-medium sm:col-span-1">{p.name}</div>
+                  <div className="flex items-center justify-between sm:block">
+                    <span className="text-[10px] text-muted-foreground sm:hidden">Price</span>
+                    <span>Rs {Number(p.price || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between sm:block">
+                    <span className="text-[10px] text-muted-foreground sm:hidden">Stock</span>
+                    <span>{Number(p.stock || 0).toLocaleString()}</span>
+                  </div>
                 </div>
               ))}
               {products.length > 50 ? (
@@ -161,8 +166,8 @@ export default function AiPage() {
             </div>
           )}
         </div>
-      </section>
+        </section>
+      </div>
     </main>
   )
 }
-
