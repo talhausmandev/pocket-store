@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { doneTopLoadingBar, startTopLoadingBar } from "@/components/TopLoadingBar"
 import { Plus, Filter } from "lucide-react"
 import Link from "next/link"
 
@@ -38,6 +39,7 @@ export default function InvoicesPage() {
     const loadInvoices = async () => {
         setError(null)
         setIsLoading(true)
+        startTopLoadingBar()
         try {
             const url = new URL("/api/invoice", window.location.origin)
             url.searchParams.set("status", "all")
@@ -55,6 +57,7 @@ export default function InvoicesPage() {
             setInvoices([])
         } finally {
             setIsLoading(false)
+            doneTopLoadingBar()
         }
     }
 
@@ -80,90 +83,78 @@ export default function InvoicesPage() {
 
     return (
         <main className="w-full text-xs">
-
-            <div className="w-[90%] flex justify-between my-2">
-
-                <div className="text-xl mx-10 font-bold">
-                    Invoices
+            <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="text-lg sm:text-xl font-bold leading-tight">Invoices</div>
+                    <Link
+                        href="/invoices/create-invoice"
+                        className="h-9 w-9 flex items-center justify-center rounded-full bg-orange-500 text-white shadow hover:bg-orange-600 transition shrink-0"
+                    >
+                        <Plus className="h-5 w-5" />
+                    </Link>
                 </div>
 
-                <Link href={"/invoices/create-invoice"} className="h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-white shadow flex">
-                    <Plus className="h-5 w-5" />
-                </Link>
+                <section className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <Input
+                        placeholder="Search invoices..."
+                        className="text-xs h-9"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                        <Filter className="h-4 w-4" />
+                    </Button>
+                </section>
+
+                <section className="mt-3 flex gap-2 flex-wrap">
+                    {(["all", "estimate", "pending", "partial", "overdue", "paid"] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            className={`px-3 py-1 rounded-full text-xs capitalize ${tab === activeTab
+                                ? "bg-orange-500 text-white"
+                                : "bg-muted text-muted-foreground"
+                                }`}
+                            onClick={() => setActiveTab(tab)}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </section>
+
+                <section className="mt-4 space-y-2 sm:space-y-3 mb-24">
+                    {error ? <div className="text-xs text-red-600">{error}</div> : null}
+                    {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
+                    {!isLoading && filteredInvoices.length === 0 ? (
+                        <div className="text-xs text-muted-foreground">
+                            {invoices.length === 0 ? "No invoices yet." : "No matching invoices."}
+                        </div>
+                    ) : null}
+                    {filteredInvoices.map((item) => (
+                        <Link
+                            key={item.id}
+                            href={`/invoices/${item.id}`}
+                            className="block p-2 sm:p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
+                        >
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0 font-semibold truncate">{item.invoiceNumber}</div>
+                                <div className="shrink-0 font-semibold">Rs {item.amount.toLocaleString()}</div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 mt-1 text-muted-foreground">
+                                <div className="min-w-0">
+                                    <p className="truncate">{item.customerName}</p>
+                                    <p className="text-[10px]">
+                                        {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
+                                        {item.status === "partial" ? ` • Paid Rs ${Number(item.paidAmount || 0).toLocaleString()}` : ""}
+                                    </p>
+                                </div>
+
+                                <Badge className={statusStyles[item.status]}>{item.status}</Badge>
+                            </div>
+                        </Link>
+                    ))}
+                </section>
             </div>
-
-            {/* SEARCH + FILTER */}
-            <section className="w-[90%] flex gap-2">
-                <Input
-                    placeholder="Search invoices..."
-                    className="text-xs h-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                    <Filter className="h-4 w-4" />
-                </Button>
-            </section>
-
-            {/* FILTER TABS */}
-            <section className="w-[90%] mt-3 flex gap-2 flex-wrap">
-                {(["all", "estimate", "pending", "partial", "overdue", "paid"] as const).map((tab) => (
-                    <button
-                        key={tab}
-                        className={`px-3 py-1 rounded-full text-xs capitalize ${tab === activeTab
-                            ? "bg-orange-500 text-white"
-                            : "bg-muted text-muted-foreground"
-                            }`}
-                        onClick={() => setActiveTab(tab)}
-                    >
-                        {tab}
-                    </button>
-                ))}
-            </section>
-
-            {/* INVOICE LIST */}
-            <section className="w-[90%] mt-4 space-y-3 mb-24">
-                {error ? <div className="text-xs text-red-600">{error}</div> : null}
-                {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
-                {!isLoading && filteredInvoices.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">
-                        {invoices.length === 0 ? "No invoices yet." : "No matching invoices."}
-                    </div>
-                ) : null}
-                {filteredInvoices.map((item) => (
-                    <Link
-                        key={item.id}
-                        href={`/invoices/${item.id}`}
-                        className="block p-3 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
-                    >
-                        {/* TOP ROW */}
-                        <div className="flex justify-between items-center">
-                            <div className="font-semibold">
-                                {item.invoiceNumber}
-                            </div>
-
-                            <div className="font-semibold">
-                                Rs {item.amount.toLocaleString()}
-                            </div>
-                        </div>
-
-                        {/* BOTTOM ROW */}
-                        <div className="flex justify-between items-center mt-1 text-muted-foreground">
-                            <div className="min-w-0">
-                                <p className="truncate">{item.customerName}</p>
-                                <p className="text-[10px]">
-                                    {item.issueDate ? new Date(item.issueDate).toLocaleDateString() : "-"}
-                                    {item.status === "partial" ? ` • Paid Rs ${Number(item.paidAmount || 0).toLocaleString()}` : ""}
-                                </p>
-                            </div>
-
-                            <Badge className={statusStyles[item.status]}>
-                                {item.status}
-                            </Badge>
-                        </div>
-                    </Link>
-                ))}
-            </section>
         </main>
     )
 }

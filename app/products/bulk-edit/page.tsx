@@ -184,19 +184,20 @@ export default function BulkEditProductsPage() {
 
   return (
     <main className="w-full text-xs">
-      <div className="w-[90%] flex justify-between my-2">
-        <div className="text-xl mx-10 font-bold">Bulk Edit Products</div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="h-8" onClick={() => router.push("/products")}>
-            Back
-          </Button>
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-lg sm:text-xl font-bold leading-tight">Bulk Edit Products</div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="h-9 text-xs" onClick={() => router.push("/products")}>
+              Back
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <section className="w-[90%] space-y-3 mb-24">
-        {error ? <div className="text-xs text-red-600">{error}</div> : null}
+        <section className="mt-3 space-y-3 mb-24">
+          {error ? <div className="text-xs text-red-600">{error}</div> : null}
 
-        <div className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+          <div className="p-3 sm:p-4 rounded-xl border bg-white shadow-sm space-y-3">
           <div className="flex flex-wrap gap-2 justify-between items-center">
             <div className="flex items-center gap-2">
               <Switch checked={appendStock} onCheckedChange={setAppendStock} disabled={isSaving} />
@@ -205,12 +206,12 @@ export default function BulkEditProductsPage() {
               </div>
             </div>
             {!isEditMode ? (
-              <Button variant="outline" className="h-8" onClick={addRow}>
+              <Button variant="outline" className="h-9 text-xs" onClick={addRow}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Row
               </Button>
             ) : null}
-            <Button className="h-8 bg-orange-500 hover:bg-orange-600" onClick={saveAll} disabled={isSaving}>
+            <Button className="h-9 text-xs bg-orange-500 hover:bg-orange-600" onClick={saveAll} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? (isEditMode ? "Saving..." : "Importing...") : isEditMode ? "Save Changes" : "Import Products"}
             </Button>
@@ -264,8 +265,9 @@ export default function BulkEditProductsPage() {
               ))}
             </div>
           )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
     </main>
   )
 }

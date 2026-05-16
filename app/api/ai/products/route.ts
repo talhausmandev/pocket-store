@@ -58,6 +58,9 @@ export async function POST(request: Request) {
     "- name must be concise and unique if possible.",
     "- price and stock must be numbers. If missing, use 0.",
     "- Do not include description or extra fields.",
+    "- make name shorter that covers only important products details.",
+    "- Do not include any extra text or explanations.",
+    "- Only short product name and its size.",
     context ? `User context/instructions:\n${context}` : "",
     "Extract products from the attached file.",
   ]

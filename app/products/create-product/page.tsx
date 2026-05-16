@@ -92,16 +92,18 @@ export default function CreateProductPage() {
     }
 
     return (
-        <main className="w-full">
-            <div className="w-[90%] mx-auto my-2">
-                <div className="mb-6">
-                    
-                    <h1 className="text-xl font-bold mx-4">Create Product / Service</h1>
+        <main className="w-full text-xs">
+            <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                    <h1 className="text-lg sm:text-xl font-bold leading-tight">Create Product / Service</h1>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 w-[90%] flex flex-col  justify-center bg-white p-6 rounded-lg shadow-md shadow-black">
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4 w-full max-w-xl bg-white p-4 sm:p-6 rounded-lg shadow-md shadow-black/20"
+                >
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Product / Service Name</label>
+                        <label className="text-xs font-medium">Product / Service Name</label>
                         <Input
                             name="name"
                             value={formData.name}
@@ -112,9 +114,9 @@ export default function CreateProductPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Price</label>
+                            <label className="text-xs font-medium">Price</label>
                             <Input
                                 name="price"
                                 type="number"
@@ -128,7 +130,7 @@ export default function CreateProductPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Stock</label>
+                            <label className="text-xs font-medium">Stock</label>
                             <Input
                                 name="stock"
                                 type="number"
@@ -149,7 +151,7 @@ export default function CreateProductPage() {
 
                     {error ? <div className="text-xs text-red-600">{error}</div> : null}
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
                         <Button
                             type="submit"
                             className="bg-orange-500 hover:bg-orange-600"
@@ -159,7 +161,7 @@ export default function CreateProductPage() {
                             {isSubmitting ? "Saving..." : "Save Product"}
                         </Button>
                         <Link href="/products">
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="outline" className="w-full sm:w-auto">
                                 Cancel
                             </Button>
                         </Link>

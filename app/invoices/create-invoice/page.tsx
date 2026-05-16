@@ -4,16 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign, Download, Eye, MoreVertical, Edit2 } from "lucide-react"
+import { Plus, Check, ChevronsUpDown, Trash2, Percent, DollarSign, Edit2, Printer } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 import {
   Command,
@@ -37,13 +31,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
-import InvoiceView from "@/components/InvoiceView"
 import InvoicePDF from "@/components/InvoicePDF"
 
-import {
-  PDFDownloadLink,
-  PDFViewer,
-} from "@react-pdf/renderer"
+import { pdf } from "@react-pdf/renderer"
 import { DialogDescription } from "@radix-ui/react-dialog"
 
 interface Product {
@@ -98,12 +88,12 @@ export default function CreateInvoicePage() {
   const [applyDiscount, setApplyDiscount] = useState(false)
   const [discountType, setDiscountType] = useState<"percent" | "amount">("percent")
   const [discountValue, setDiscountValue] = useState("")
-  const [showPreview, setShowPreview] = useState(false)
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [invoiceDate, setInvoiceDate] = useState("")
   const [issueDateValue, setIssueDateValue] = useState("")
   const [dueDateValue, setDueDateValue] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false)
   const [currentItem, setCurrentItem] = useState<InvoiceItem | null>(null)
@@ -328,6 +318,48 @@ export default function CreateInvoicePage() {
     contact: customClientContact || selectedClient?.contact || "",
   }
 
+  const printPdf = async () => {
+    if (invoiceItemsForPDF.length === 0) return
+    setIsPrinting(true)
+    setSaveError(null)
+    try {
+      const blob = await pdf(
+        <InvoicePDF
+          invoiceNumber={invoiceNumber}
+          date={invoiceDate}
+          customer={customerForPDF}
+          items={invoiceItemsForPDF}
+          subtotal={calculateSubtotal()}
+          tax={calculateTax()}
+          taxRate={parseFloat(taxRate)}
+          discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
+          discountType={discountType}
+          total={calculateTotal()}
+          companyName={storeName}
+          isEstimate={isEstimate}
+        />
+      ).toBlob()
+
+      const url = URL.createObjectURL(blob)
+      const w = window.open(url, "_blank")
+      if (!w) {
+        setSaveError("Popup blocked. Allow popups to print.")
+        URL.revokeObjectURL(url)
+        return
+      }
+
+      w.addEventListener("load", () => {
+        w.focus()
+        w.print()
+        setTimeout(() => URL.revokeObjectURL(url), 30000)
+      })
+    } catch {
+      setSaveError("Failed to generate PDF")
+    } finally {
+      setIsPrinting(false)
+    }
+  }
+
   const saveInvoice = async () => {
     setSaveError(null)
     if (items.length === 0) {
@@ -396,10 +428,10 @@ export default function CreateInvoicePage() {
 
   return (
     <main className="w-full">
-      <div className="w-full max-w-7xl mx-auto px-4 my-4">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">Create Invoice</h1>
-          <div className="flex items-center gap-2">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <h1 className="text-lg sm:text-xl font-bold leading-tight">Create Invoice</h1>
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               className="bg-orange-500 hover:bg-orange-600"
               onClick={saveInvoice}
@@ -407,74 +439,19 @@ export default function CreateInvoicePage() {
             >
               {isSaving ? "Saving..." : "Save Invoice"}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <PDFDownloadLink
-                    document={
-                      <InvoicePDF
-                        invoiceNumber={invoiceNumber}
-                        date={invoiceDate}
-                        customer={customerForPDF}
-                        items={invoiceItemsForPDF}
-                        subtotal={calculateSubtotal()}
-                        tax={calculateTax()}
-                        taxRate={parseFloat(taxRate)}
-                        discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
-                        discountType={discountType}
-                        total={calculateTotal()}
-                        companyName={storeName}
-                        isEstimate={isEstimate}
-                      />
-                    }
-                    fileName={`invoice-${invoiceNumber}.pdf`}
-                  >
-                    {({ loading }) => (
-                      <div className="flex items-center">
-                        <Download className="h-4 w-4 mr-2" />
-                        {loading ? "Generating PDF..." : "Download PDF"}
-                      </div>
-                    )}
-                  </PDFDownloadLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowPreview(!showPreview)}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  {showPreview ? "Hide Preview" : "Preview PDF"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              className="bg-orange-500 hover:bg-orange-600"
+              onClick={() => void printPdf()}
+              disabled={invoiceItemsForPDF.length === 0 || isPrinting}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              {isPrinting ? "Printing..." : "Print Invoice"}
+            </Button>
           </div>
         </div>
         {saveError ? <div className="text-xs text-red-600 mb-4">{saveError}</div> : null}
 
-        {showPreview && invoiceItemsForPDF.length > 0 && (
-          <div className="mb-8 border rounded-lg overflow-hidden h-[800px]">
-            <PDFViewer width="100%" height="100%">
-              <InvoicePDF
-                invoiceNumber={invoiceNumber}
-                date={invoiceDate}
-                customer={customerForPDF}
-                items={invoiceItemsForPDF}
-                subtotal={calculateSubtotal()}
-                tax={calculateTax()}
-                taxRate={parseFloat(taxRate)}
-                discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
-                discountType={discountType}
-                total={calculateTotal()}
-                companyName={storeName}
-                isEstimate={isEstimate}
-              />
-            </PDFViewer>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Invoice Form */}
+        <div className="grid grid-cols-1 gap-6">
           <div className="space-y-6">
             {/* BILL TO */}
             <section className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
@@ -625,13 +602,15 @@ export default function CreateInvoicePage() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openProduct}
-                        className="w-full h-9 text-xs justify-between"
+                        className="w-full h-9 text-xs justify-between gap-2"
                       >
-                        {selectedProduct ? selectedProduct.name : "Select Item..."}
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {selectedProduct ? selectedProduct.name : "Select Item..."}
+                        </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent className="w-full max-w-[calc(100vw-2rem)] p-0">
                       <Command>
                         <CommandInput placeholder="Search item..." className="h-9" />
                         <CommandList>
@@ -641,6 +620,7 @@ export default function CreateInvoicePage() {
                               <CommandItem
                                 key={product.id}
                                 value={product.name}
+                                className="w-full min-w-0"
                                 onSelect={() => {
                                   setSelectedProduct(product)
                                   setOpenProduct(false)
@@ -652,8 +632,8 @@ export default function CreateInvoicePage() {
                                     selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
                                   )}
                                 />
-                                {product.name}
-                                <span className="ml-auto text-muted-foreground">
+                                <span className="min-w-0 flex-1 truncate">{product.name}</span>
+                                <span className="ml-auto shrink-0 text-muted-foreground whitespace-nowrap">
                                   Rs {product.price.toFixed(2)}
                                 </span>
                               </CommandItem>
@@ -829,30 +809,6 @@ export default function CreateInvoicePage() {
                 </span>
               </div>
             </section>
-          </div>
-
-          {/* Invoice Preview - Hidden on small screens */}
-          <div className="hidden xl:block">
-            {invoiceItemsForPDF.length > 0 ? (
-              <InvoiceView
-                invoiceNumber={invoiceNumber}
-                date={invoiceDate}
-                customer={customerForPDF}
-                items={invoiceItemsForPDF}
-                subtotal={calculateSubtotal()}
-                tax={calculateTax()}
-                taxRate={parseFloat(taxRate)}
-                discount={calculateTotalItemDiscounts() + calculateInvoiceDiscount()}
-                discountType={discountType}
-                total={calculateTotal()}
-                companyName={storeName}
-                isEstimate={isEstimate}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full min-h-[400px] text-muted-foreground">
-                <p>Add items to see invoice preview</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

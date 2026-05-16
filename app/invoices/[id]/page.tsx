@@ -26,8 +26,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import InvoicePDF from "@/components/InvoicePDF"
-import { Check, ChevronsUpDown, DollarSign, Download, Edit2, Percent, Plus, Printer, Save, Trash2, X, Eye } from "lucide-react"
-import { PDFDownloadLink, PDFViewer, pdf } from "@react-pdf/renderer"
+import { doneTopLoadingBar, startTopLoadingBar } from "@/components/TopLoadingBar"
+import { Check, ChevronsUpDown, DollarSign, Edit2, Percent, Plus, Printer, Save, Trash2 } from "lucide-react"
+import { pdf } from "@react-pdf/renderer"
 
 type Status = "paid" | "pending" | "overdue" | "estimate" | "partial"
 
@@ -119,7 +120,6 @@ export default function InvoiceDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
   const [isPrinting, setIsPrinting] = useState(false)
   const [makeRealDueDate, setMakeRealDueDate] = useState("")
   const [paymentAmount, setPaymentAmount] = useState("")
@@ -140,6 +140,7 @@ export default function InvoiceDetailPage() {
   const loadInvoice = async (id: string) => {
     setError(null)
     setIsLoading(true)
+    startTopLoadingBar()
     try {
       const res = await fetch(`/api/invoice/${id}`, { cache: "no-store" })
       const data = await res.json().catch(() => null)
@@ -154,6 +155,7 @@ export default function InvoiceDetailPage() {
       setInvoice(null)
     } finally {
       setIsLoading(false)
+      doneTopLoadingBar()
     }
   }
 
@@ -456,24 +458,25 @@ export default function InvoiceDetailPage() {
 
   return (
     <main className="w-full text-xs">
-      <div className="w-[90%] flex justify-between my-2">
-        <div className="text-xl mx-10 font-bold">Invoice</div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="h-8" onClick={() => router.push("/invoices")}>
-            Back
-          </Button>
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-lg sm:text-xl font-bold leading-tight">Invoice</div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="h-9 text-xs" onClick={() => router.push("/invoices")}>
+              Back
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <section className="w-[90%] space-y-3 mb-24">
-        {error ? <div className="text-xs text-red-600">{error}</div> : null}
-        {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
-        {!isLoading && !invoice ? (
-          <div className="text-xs text-muted-foreground">Invoice not found.</div>
-        ) : null}
+        <section className="mt-3 space-y-3 mb-24">
+          {error ? <div className="text-xs text-red-600">{error}</div> : null}
+          {isLoading ? <div className="text-xs text-muted-foreground">Loading...</div> : null}
+          {!isLoading && !invoice ? (
+            <div className="text-xs text-muted-foreground">Invoice not found.</div>
+          ) : null}
 
-        {invoice ? (
-          <div className="p-4 rounded-xl border bg-white shadow-sm space-y-3">
+          {invoice ? (
+            <div className="p-3 sm:p-4 rounded-xl border bg-white shadow-sm space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="font-semibold truncate">{invoice.invoiceNumber}</div>
@@ -487,70 +490,14 @@ export default function InvoiceDetailPage() {
 
             <div className="flex flex-wrap gap-2">
               <Button
-                className="h-8 bg-orange-500 hover:bg-orange-600"
+                className="h-9 text-xs bg-orange-500 hover:bg-orange-600"
                 disabled={!invoice || isPrinting}
                 onClick={printPdf}
               >
                 <Printer className="h-4 w-4 mr-2" />
-                {isPrinting ? "Printing..." : "Print PDF"}
-              </Button>
-              <PDFDownloadLink
-                document={
-                  <InvoicePDF
-                    invoiceNumber={invoice.invoiceNumber}
-                    date={invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : "-"}
-                    customer={pdfCustomer}
-                    items={pdfItems}
-                    subtotal={invoice.subtotalAmount}
-                    tax={invoice.taxAmount}
-                    taxRate={invoice.taxRate}
-                    discount={invoice.discountAmount}
-                    discountType="amount"
-                    total={invoice.totalAmount}
-                    companyName={invoice.storeName}
-                    isEstimate={invoice.isEstimate}
-                  />
-                }
-                fileName={`${invoice.invoiceNumber}.pdf`}
-              >
-                {({ loading }) => (
-                  <Button variant="outline" className="h-8" disabled={loading}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {loading ? "Generating..." : "Download PDF"}
-                  </Button>
-                )}
-              </PDFDownloadLink>
-              <Button
-                variant="outline"
-                className="h-8"
-                disabled={!invoice}
-                onClick={() => setShowPreview((v) => !v)}
-              >
-                {showPreview ? <X className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                {showPreview ? "Hide Preview" : "Preview PDF"}
+                {isPrinting ? "Printing..." : "Print Invoice"}
               </Button>
             </div>
-
-            {showPreview ? (
-              <div className="border rounded-lg overflow-hidden h-[700px]">
-                <PDFViewer width="100%" height="100%">
-                  <InvoicePDF
-                    invoiceNumber={invoice.invoiceNumber}
-                    date={invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : "-"}
-                    customer={pdfCustomer}
-                    items={pdfItems}
-                    subtotal={invoice.subtotalAmount}
-                    tax={invoice.taxAmount}
-                    taxRate={invoice.taxRate}
-                    discount={invoice.discountAmount}
-                    discountType="amount"
-                    total={invoice.totalAmount}
-                    companyName={invoice.storeName}
-                    isEstimate={invoice.isEstimate}
-                  />
-                </PDFViewer>
-              </div>
-            ) : null}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="p-3 rounded-lg border bg-muted/30">
@@ -791,9 +738,10 @@ export default function InvoiceDetailPage() {
                 Stored status: {invoice.storedStatus}
               </div>
             </div>
-          </div>
-        ) : null}
-      </section>
+            </div>
+          ) : null}
+        </section>
+      </div>
     </main>
   )
 }
